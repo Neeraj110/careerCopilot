@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary-fixed-dim": "#ffb95f",
+                    "surface-container": "#171f33",
+                    "on-secondary": "#472a00",
+                    "tertiary-fixed-dim": "#c0c1ff",
+                    "outline": "#88929b",
+                    "on-tertiary-fixed-variant": "#2f2ebe",
+                    "on-tertiary": "#1000a9",
+                    "tertiary-fixed": "#e1e0ff",
+                    "on-primary-fixed-variant": "#005236",
+                    "surface": "#0b1326",
+                    "surface-container-high": "#222a3d",
+                    "on-tertiary-fixed": "#07006c",
+                    "inverse-on-surface": "#283044",
+                    "error-container": "#93000a",
+                    "secondary-fixed": "#ffddb8",
+                    "tertiary": "#c0c1ff",
+                    "secondary": "#ffb95f",
+                    "primary-container": "#00b17b",
+                    "primary": "#4edea3",
+                    "outline-variant": "#3e4850",
+                    "on-error": "#690005",
+                    "inverse-surface": "#dae2fd",
+                    "on-background": "#dae2fd",
+                    "surface-container-low": "#131b2e",
+                    "surface-variant": "#2d3449",
+                    "on-surface": "#dae2fd",
+                    "on-secondary-fixed-variant": "#653e00",
+                    "on-error-container": "#ffdad6",
+                    "secondary-container": "#ee9800",
+                    "surface-dim": "#0b1326",
+                    "on-primary": "#003824",
+                    "on-secondary-fixed": "#2a1700",
+                    "on-primary-fixed": "#002113",
+                    "on-tertiary-container": "#1407ad",
+                    "on-secondary-container": "#5b3800",
+                    "primary-fixed": "#6ffbbe",
+                    "on-primary-container": "#003b26",
+                    "surface-container-highest": "#2d3449",
+                    "background": "#0b1326",
+                    "surface-container-lowest": "#060e20",
+                    "primary-fixed-dim": "#4edea3",
+                    "surface-tint": "#4edea3",
+                    "surface-bright": "#31394d",
+                    "on-surface-variant": "#bec8d2",
+                    "inverse-primary": "#006c49",
+                    "error": "#ffb4ab",
+                    "tertiary-container": "#8d90ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        body {
+            background-color: #0b1326;
+            color: #dae2fd;
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#0b1326]">
+<div class="flex justify-between items-center px-6 py-4 w-full">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-high ring-2 ring-primary/20">
+<img alt="user profile picture" class="w-full h-full object-cover" data-alt="Professional male portrait with friendly expression, soft studio lighting, clean dark background, high-end photography style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSzxJ4zcMZ5y6D3Iel-LRjFwgbpR9SvUHlPvvj3y3lCchFxcWoDkk19UUhALfMDtuQv9qFLWDApr7dj1vjW110X7_DMclYBP1IHT6aQrYuwmyyRWmwywzcMLGJB9RxEKhWG5oisDhvKM1t62xErY3qYw9O3FS4cDwh_jm-v2oDaccsDPtnx0z-fgLm6hxV_J7ndXFvTxLBoFion56Ok-VMNo1s7yf6gj7F3ZG48LMPwhjnZDCxF84MRkZOpSl0xix5rjfOyrAEo8Xi"/>
+</div>
+<span class="font-manrope font-bold text-lg tracking-tight text-[#4edea3]">Copilot AI</span>
+</div>
+<button class="text-[#4edea3] hover:opacity-80 transition-opacity active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</div>
+<div class="bg-gradient-to-b from-[#171f33] to-transparent h-px w-full"></div>
+</header>
+<main class="pt-20 px-4 space-y-6">
+<!-- Search and Filter Section -->
+<section class="space-y-4">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-xl py-4 pl-12 pr-4 text-on-surface placeholder:text-on-surface-variant focus:ring-2 focus:ring-primary/30 transition-all outline-none" placeholder="Search roles, skills, or companies..." type="text"/>
+</div>
+<!-- Filter Chips (Horizontal Scroll) -->
+<div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
+<button class="flex-shrink-0 px-4 py-2 bg-primary text-on-primary rounded-full font-label text-sm font-semibold">All Jobs</button>
+<button class="flex-shrink-0 px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-full font-label text-sm font-medium hover:text-on-surface transition-colors">Product Designer</button>
+<button class="flex-shrink-0 px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-full font-label text-sm font-medium hover:text-on-surface transition-colors">React</button>
+<button class="flex-shrink-0 px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-full font-label text-sm font-medium hover:text-on-surface transition-colors">Remote</button>
+<button class="flex-shrink-0 px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-full font-label text-sm font-medium hover:text-on-surface transition-colors">Senior</button>
+<button class="flex-shrink-0 px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-full font-label text-sm font-medium hover:text-on-surface transition-colors">Figma</button>
+</div>
+</section>
+<!-- AI Insights Banner -->
+<section class="bg-tertiary-container/10 border border-tertiary/20 p-4 rounded-xl flex items-start gap-3">
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<div>
+<p class="font-headline font-bold text-tertiary text-sm">Copilot Insight</p>
+<p class="text-xs text-on-surface-variant leading-relaxed">Based on your recent portfolio update, you have a 92% match for Senior UI roles at fintech startups.</p>
+</div>
+</section>
+<!-- Job Feed -->
+<div class="space-y-4">
+<!-- Job Card 1 -->
+<div class="bg-surface-container p-5 rounded-xl space-y-4 transition-transform active:scale-[0.98]">
+<div class="flex justify-between items-start">
+<div class="flex gap-3">
+<div class="w-12 h-12 rounded-lg bg-[#2d3449] flex items-center justify-center">
+<img alt="Company Logo" class="w-8 h-8 object-contain" data-alt="Modern abstract company logo with geometric shapes, vibrant gradients, clean minimalist tech aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbPlGjqsVeqtUP8wuAdFCTeGFNnYeNaHw86XbNmvsQlxgxocxve-rv5EGiNNkFgwR_JX1jPAFXq82BlbS3Cnv1RUgDnp0JQu3bWd1uPugjPwsZOv_vxn_SKDfj8LvxSkVhkEVyW-vjoWZxgtXiyoeuzifmtdkQuhqGzbccTrIFv7O2HQs36NatT1fAT68_pYeU2Zv7UnJULTROgAoohJpko8KNh2ZlwyO7hlBSZvGRoMhcMVfK63uNk6FBJpVkisTkqnpoD6CsFRKS"/>
+</div>
+<div>
+<h3 class="font-headline font-bold text-on-surface">Senior Product Designer</h3>
+<p class="text-sm text-on-surface-variant">Stripe • Remote</p>
+</div>
+</div>
+<div class="bg-primary-container/20 px-2 py-1 rounded text-primary font-headline font-extrabold text-sm">
+                        98% Match
+                    </div>
+</div>
+<div class="flex flex-wrap gap-2">
+<span class="px-2 py-1 bg-surface-container-high rounded-md text-[10px] uppercase tracking-wider font-semibold text-on-surface-variant">Design Systems</span>
+<span class="px-2 py-1 bg-surface-container-high rounded-md text-[10px] uppercase tracking-wider font-semibold text-on-surface-variant">Fintech</span>
+<span class="px-2 py-1 bg-surface-container-high rounded-md text-[10px] uppercase tracking-wider font-semibold text-on-surface-variant">Prototyping</span>
+</div>
+<div class="flex items-center justify-between pt-2">
+<span class="text-sm font-manrope font-bold text-on-surface">$160k - $210k</span>
+<button class="bg-gradient-to-br from-primary to-primary-container text-on-primary-container px-6 py-2 rounded-lg font-label font-bold text-sm shadow-lg shadow-primary/10">Apply Now</button>
+</div>
+</div>
+<!-- Job Card 2 -->
+<div class="bg-surface-container p-5 rounded-xl space-y-4 transition-transform active:scale-[0.98]">
+<div class="flex justify-between items-start">
+<div class="flex gap-3">
+<div class="w-12 h-12 rounded-lg bg-[#2d3449] flex items-center justify-center">
+<img alt="Company Logo" class="w-8 h-8 object-contain" data-alt="Sleek corporate logo icon on dark background, blue and teal color scheme, futuristic software brand identity" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBURLu0JSWZdlORxtxmh8lVisHhkBoRvJ6y8FpUFka5fB8NO7NgrEwCLwyaHK0zZjwPvK44h-qX10a4sfj3JWfNM1bpyli8kvYylPBTveYLXn6o_AGQgLsp-5xdgqHMtFKPdtYOLBMVcND2kTEHL573kc444P2lchCPysJRG13QmPw520CXz4qcMlUx0q85Sxul8wwT5vlYr2EMO0pasAJb04fVQvLXX-jr12o-v69iJLyyGWl0hLvwUlTeViekZYbQIg1ingOrCeE-"/>
+</div>
+<div>
+<h3 class="font-headline font-bold text-on-surface">UI Engineer</h3>
+<p class="text-sm text-on-surface-variant">Linear • San Francisco</p>
+</div>
+</div>
+<div class="bg-primary-container/20 px-2 py-1 rounded text-primary font-headline font-extrabold text-sm">
+                        85% Match
+                    </div>
+</div>
+<div class="flex flex-wrap gap-2">
+<span class="px-2 py-1 bg-surface-container-high rounded-md text-[10px] uppercase tracking-wider font-semibold text-on-surface-variant">React</span>
+<span class="px-2 py-1 bg-surface-container-high rounded-md text-[10px] uppercase tracking-wider font-semibold text-on-surface-variant">Tailwind CSS</span>
+<span class="px-2 py-1 bg-surface-container-high rounded-md text-[10px] uppercase tracking-wider font-semibold text-on-surface-variant">TypeScript</span>
+</div>
+<div class="flex items-center justify-between pt-2">
+<span class="text-sm font-manrope font-bold text-on-surface">$145k - $185k</span>
+<button class="bg-gradient-to-br from-primary to-primary-container text-on-primary-container px-6 py-2 rounded-lg font-label font-bold text-sm shadow-lg shadow-primary/10">Apply Now</button>
+</div>
+</div>
+<!-- Job Card 3 -->
+<div class="bg-surface-container p-5 rounded-xl space-y-4 transition-transform active:scale-[0.98]">
+<div class="flex justify-between items-start">
+<div class="flex gap-3">
+<div class="w-12 h-12 rounded-lg bg-[#2d3449] flex items-center justify-center">
+<img alt="Company Logo" class="w-8 h-8 object-contain" data-alt="Minimalist technology brand logo, monochrome aesthetic with sharp lines, professional and modern feel" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAt_HT0U8NS0gZN2laKtz-HLplbhlPErmQho__L6YaICgC9AGCHPF3v046-jlO7bSsu9Os5FrBn9wjxyauEykCRYocMTYnhDN3I08mKLXrCjyrTzAnFpw6KR5127XQKOLEjmfIsA5sH7-poFCXm7irifgYSj9kNS2AxoY-_jYAEc-ZGNEr-yiEi5rU3xJWu8JtaOsehMvbvV8EoXNL5MSLR7AwGCrMlJ-d0eVN1d9ti2LfmaD3KqnJk6XQFjUMhsNkGdkOcGGvYNcKT"/>
+</div>
+<div>
+<h3 class="font-headline font-bold text-on-surface">Experience Lead</h3>
+<p class="text-sm text-on-surface-variant">Airbnb • Hybrid</p>
+</div>
+</div>
+<div class="bg-secondary-container/20 px-2 py-1 rounded text-secondary font-headline font-extrabold text-sm">
+                        72% Match
+                    </div>
+</div>
+<div class="flex flex-wrap gap-2">
+<span class="px-2 py-1 bg-surface-container-high rounded-md text-[10px] uppercase tracking-wider font-semibold text-on-surface-variant">Leadership</span>
+<span class="px-2 py-1 bg-surface-container-high rounded-md text-[10px] uppercase tracking-wider font-semibold text-on-surface-variant">UX Strategy</span>
+</div>
+<div class="flex items-center justify-between pt-2">
+<span class="text-sm font-manrope font-bold text-on-surface">$190k - $240k</span>
+<button class="bg-gradient-to-br from-primary to-primary-container text-on-primary-container px-6 py-2 rounded-lg font-label font-bold text-sm shadow-lg shadow-primary/10">Apply Now</button>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-[#171f33]/90 backdrop-blur-xl rounded-t-2xl z-50 shadow-[0_-4px_20px_rgba(6,14,32,0.4)]">
+<a class="flex flex-col items-center justify-center text-slate-400 opacity-60 hover:text-[#4edea3] transition-colors active:transform active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-inter text-[10px] font-medium uppercase tracking-wider mt-1">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4edea3] bg-[#222a3d] rounded-xl px-3 py-1.5 active:transform active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="work" style="font-variation-settings: 'FILL' 1;">work</span>
+<span class="font-inter text-[10px] font-medium uppercase tracking-wider mt-1">Jobs</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 opacity-60 hover:text-[#4edea3] transition-colors active:transform active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-inter text-[10px] font-medium uppercase tracking-wider mt-1">Resume</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 opacity-60 hover:text-[#4edea3] transition-colors active:transform active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-inter text-[10px] font-medium uppercase tracking-wider mt-1">Insights</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 opacity-60 hover:text-[#4edea3] transition-colors active:transform active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="more_horiz">more_horiz</span>
+<span class="font-inter text-[10px] font-medium uppercase tracking-wider mt-1">More</span>
+</a>
+</nav>
+</body></html>

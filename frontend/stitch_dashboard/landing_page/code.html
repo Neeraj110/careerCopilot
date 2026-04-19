@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CareerCopilot - Your Career, Supercharged by AI</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface": "#0b1326",
+                    "tertiary-container": "#8d90ff",
+                    "surface-dim": "#0b1326",
+                    "on-secondary-container": "#5b3800",
+                    "on-surface": "#dae2fd",
+                    "surface-variant": "#2d3449",
+                    "tertiary-fixed-dim": "#c0c1ff",
+                    "surface-container-lowest": "#060e20",
+                    "on-primary-fixed": "#002113",
+                    "outline-variant": "#3e4850",
+                    "surface-tint": "#4edea3",
+                    "surface-container": "#171f33",
+                    "on-secondary-fixed-variant": "#653e00",
+                    "on-secondary": "#472a00",
+                    "background": "#0b1326",
+                    "on-secondary-fixed": "#2a1700",
+                    "surface-bright": "#31394d",
+                    "secondary-fixed": "#ffddb8",
+                    "on-surface-variant": "#bec8d2",
+                    "on-primary-container": "#003b26",
+                    "on-background": "#dae2fd",
+                    "error-container": "#93000a",
+                    "surface-container-high": "#222a3d",
+                    "on-primary-fixed-variant": "#005236",
+                    "error": "#ffb4ab",
+                    "inverse-on-surface": "#283044",
+                    "on-tertiary-container": "#1407ad",
+                    "on-error-container": "#ffdad6",
+                    "secondary": "#ffb95f",
+                    "inverse-primary": "#006c49",
+                    "primary-fixed": "#6ffbbe",
+                    "secondary-container": "#ee9800",
+                    "outline": "#88929b",
+                    "on-tertiary-fixed-variant": "#2f2ebe",
+                    "surface-container-low": "#131b2e",
+                    "secondary-fixed-dim": "#ffb95f",
+                    "on-error": "#690005",
+                    "primary-container": "#00b17b",
+                    "tertiary-fixed": "#e1e0ff",
+                    "primary": "#4edea3",
+                    "surface-container-highest": "#2d3449",
+                    "primary-fixed-dim": "#4edea3",
+                    "on-primary": "#003824",
+                    "inverse-surface": "#dae2fd",
+                    "on-tertiary-fixed": "#07006c",
+                    "tertiary": "#c0c1ff",
+                    "on-tertiary": "#1000a9"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #0b1326; color: #dae2fd; }
+        .font-headline { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .glass-panel { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+    </style>
+</head>
+<body class="bg-surface text-on-surface selection:bg-primary/30">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-[#0b1326]/80 backdrop-blur-xl shadow-2xl shadow-black/20 no-border tonal-shift-bottom">
+<div class="flex justify-between items-center px-10 py-4 max-w-[1440px] mx-auto">
+<div class="text-2xl font-bold tracking-tighter font-['Manrope'] text-white">CareerCopilot</div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-[#4edea3] font-semibold font-['Inter'] text-sm tracking-tight hover:text-white transition-colors duration-300" href="#">Product</a>
+<a class="text-slate-400 font-medium font-['Inter'] text-sm tracking-tight hover:text-white transition-colors duration-300" href="#">Intelligence</a>
+<a class="text-slate-400 font-medium font-['Inter'] text-sm tracking-tight hover:text-white transition-colors duration-300" href="#">Pricing</a>
+<a class="text-slate-400 font-medium font-['Inter'] text-sm tracking-tight hover:text-white transition-colors duration-300" href="#">Resources</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-slate-400 font-medium text-sm hover:text-white transition-colors">Log In</button>
+<button class="bg-gradient-to-br from-primary to-primary-container text-on-primary-container px-5 py-2 rounded-xl font-bold text-sm hover:scale-105 active:scale-95 transition-transform">Get Started</button>
+</div>
+</div>
+</nav>
+<main class="pt-24">
+<!-- Hero Section -->
+<section class="relative px-10 pt-20 pb-32 max-w-[1440px] mx-auto flex flex-col items-center text-center">
+<div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 overflow-hidden">
+<div class="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-primary/10 rounded-full blur-[120px]"></div>
+</div>
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high text-primary text-xs font-bold tracking-wider uppercase mb-6">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+                The Future of Recruitment is Here
+            </div>
+<h1 class="font-headline text-5xl md:text-7xl font-extrabold tracking-tight text-white mb-8 max-w-4xl leading-[1.1]">
+                Your Career, <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary-fixed">Supercharged</span> by AI
+            </h1>
+<p class="text-on-surface-variant text-lg md:text-xl max-w-2xl mb-12 leading-relaxed">
+                Analyze your resume instantly, discover high-match roles with proprietary intelligence, and manage your entire journey on a single intelligent canvas.
+            </p>
+<div class="flex flex-col sm:flex-row gap-4 mb-20">
+<button class="bg-gradient-to-br from-primary to-primary-container text-on-primary-container px-8 py-4 rounded-xl font-bold text-lg hover:scale-105 active:scale-95 transition-transform shadow-lg shadow-primary/20">
+                    Start Your Journey
+                </button>
+<button class="bg-surface-container-highest text-on-surface px-8 py-4 rounded-xl font-bold text-lg hover:bg-surface-bright transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined">play_circle</span>
+                    Watch Demo
+                </button>
+</div>
+<!-- Dashboard Preview -->
+<div class="relative w-full max-w-6xl rounded-2xl p-2 bg-gradient-to-b from-white/10 to-transparent shadow-2xl">
+<div class="rounded-xl overflow-hidden bg-surface-container-lowest border-t border-white/10">
+<img alt="Career Dashboard Preview" class="w-full h-auto object-cover opacity-90" data-alt="Sleek dark mode data analytics dashboard with glowing emerald line charts, match score gauges, and a minimalist kanban board layout" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7GriR5YtJGAohGlEYD3xXDKrL2baNu84Ri_zkhI_pCyaKK3z9ImqcmejxnPtpwqVx9r-k4vgUyx-3yBfDpRtugnTBg1f8-0tQLq5XvKAuuMoD49FQSL0APiKjLMwnkOLA6Wyz_6b9gOGfMpYK76fg6oTiTwiVjwK3wNMA_nmdgMHDquMdTp7PslcJfw2VcoNdJaQVGKPoWOAJtbfaotskliICaNptfCxPY06W1cueFSPEFQRcNxLQZzFmJL-LAHa4aHtG4tgjRPsl"/>
+</div>
+</div>
+</section>
+<!-- Bento Features Section -->
+<section class="px-10 py-24 max-w-[1440px] mx-auto">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6 h-auto md:h-[600px]">
+<!-- Resume Intelligence -->
+<div class="md:col-span-8 bg-surface-container rounded-2xl p-10 flex flex-col justify-between group overflow-hidden relative">
+<div class="relative z-10">
+<div class="h-12 w-12 rounded-xl bg-primary/20 text-primary flex items-center justify-center mb-6">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">description</span>
+</div>
+<h3 class="font-headline text-3xl font-bold text-white mb-4">Resume Intelligence</h3>
+<p class="text-on-surface-variant text-lg max-w-md leading-relaxed">
+                            Our proprietary LLM analyzes your resume against industry benchmarks, providing actionable scores and semantic improvements to bypass ATS filters.
+                        </p>
+</div>
+<!-- Small Card Graphic -->
+<div class="mt-8 md:mt-0 self-end md:absolute md:bottom-[-20px] md:right-[-20px] bg-surface-container-highest p-6 rounded-2xl shadow-2xl border border-white/5 w-full md:w-72 transition-transform duration-500 group-hover:-translate-y-4 group-hover:-translate-x-4">
+<div class="flex items-center justify-between mb-6">
+<div class="font-bold text-white">Match Score</div>
+<div class="text-primary font-headline text-2xl font-extrabold">94%</div>
+</div>
+<div class="space-y-4">
+<div class="h-1.5 w-full bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[94%]"></div>
+</div>
+<div class="flex items-center gap-2 text-xs text-on-surface-variant uppercase tracking-widest font-bold">
+<span class="text-primary">Optimized</span>
+<span class="opacity-30">•</span>
+<span>High Relevance</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Smart Job Matching -->
+<div class="md:col-span-4 bg-surface-container-low border border-white/5 rounded-2xl p-10 flex flex-col">
+<div class="h-12 w-12 rounded-xl bg-tertiary/20 text-tertiary flex items-center justify-center mb-6">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">hub</span>
+</div>
+<h3 class="font-headline text-2xl font-bold text-white mb-4">Smart Matching</h3>
+<p class="text-on-surface-variant leading-relaxed mb-8">
+                        The Match Engine discovers roles that aren't just a fit on paper, but align with your career trajectory and skill-depth metrics.
+                    </p>
+<div class="mt-auto space-y-3">
+<div class="flex items-center gap-3 bg-surface-container p-3 rounded-lg">
+<div class="h-8 w-8 rounded-md bg-white/10 overflow-hidden">
+<img alt="Logo" class="w-full h-full object-cover" data-alt="Abstract minimalist tech company logo in blue and purple" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwYaAm3VuRL9YbS6fhmvOFKVcIdGygDw1sQjytjhtFMzfTlvHtzkG3naYn_RWcz9WS7vtDYwIVldgAlLS8nwyGXLIz_nkDgyXfhXN3rKrc2LdtCzuHOmye6VTzNnWyyRwZTtkztKLEf22Jh_pdYYCbwqxTJEIkQ3KiDpxBbqfe3NH7hhsargCSF30e14o-hTmGm5Rr5xDOTROAwmLY-SD1HC9zRTF-1DdiHDUxrk1pslaZJvFhGnTmkFvVRfHZaxm5jIYVtXg010Es"/>
+</div>
+<div>
+<div class="text-xs font-bold text-white">Senior Architect</div>
+<div class="text-[10px] text-on-surface-variant">CloudScale AI</div>
+</div>
+<div class="ml-auto text-primary text-xs font-bold">98% Fit</div>
+</div>
+<div class="flex items-center gap-3 bg-surface-container p-3 rounded-lg opacity-60">
+<div class="h-8 w-8 rounded-md bg-white/10 overflow-hidden">
+<img alt="Logo" class="w-full h-full object-cover" data-alt="Abstract geometric startup logo with vibrant orange and yellow tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkdvMSb_WvK4PtV0Lk98lHLCxhlE093an9uBGsPCTv9vvIJW1NuG-3o10LhDudGbL32-ryZHNbw8AN-STMLxdWjn87AR32GzJYCQfZUWcO1cL35D7qS1D-HeY1MD3_dIny-sn0jDOl53WqKfHzPx0GK4gFm7TtEOnfi7IVvjX1HoCaaXRCNImlNqkHVfE3wdRMqUNNRuzxQ3Ezqqk0NeaeLi-zzfSCqst_seHJv_4vP0kTETg3dnf1cnSP2CS3qC_GO3qwhzQfiO-V"/>
+</div>
+<div>
+<div class="text-xs font-bold text-white">Lead Engineer</div>
+<div class="text-[10px] text-on-surface-variant">Nexus Flow</div>
+</div>
+<div class="ml-auto text-primary text-xs font-bold">91% Fit</div>
+</div>
+</div>
+</div>
+<!-- Application Tracker -->
+<div class="md:col-span-12 bg-surface-bright/20 border border-white/5 rounded-2xl p-10 flex flex-col md:flex-row gap-12 items-center overflow-hidden">
+<div class="md:w-1/2">
+<div class="h-12 w-12 rounded-xl bg-secondary/20 text-secondary flex items-center justify-center mb-6">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">view_kanban</span>
+</div>
+<h3 class="font-headline text-3xl font-bold text-white mb-4">Application Tracker</h3>
+<p class="text-on-surface-variant text-lg leading-relaxed">
+                            Stop using spreadsheets. Our intelligent Kanban board tracks your applications, reminds you of follow-ups, and archives interview insights automatically.
+                        </p>
+</div>
+<div class="md:w-1/2 flex gap-4 w-full">
+<div class="flex-1 space-y-4">
+<div class="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest mb-2 px-2">Interviewing</div>
+<div class="bg-surface-container p-4 rounded-xl shadow-lg border-l-2 border-primary">
+<div class="text-sm font-bold text-white mb-1">Google UX Design</div>
+<div class="text-xs text-on-surface-variant">Tomorrow, 10:00 AM</div>
+</div>
+<div class="bg-surface-container p-4 rounded-xl shadow-lg opacity-80">
+<div class="text-sm font-bold text-white mb-1">Apple Lead Dev</div>
+<div class="text-xs text-on-surface-variant">Monday, 02:30 PM</div>
+</div>
+</div>
+<div class="flex-1 space-y-4 hidden sm:block">
+<div class="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest mb-2 px-2">Offered</div>
+<div class="bg-primary/10 p-4 rounded-xl border border-primary/20">
+<div class="text-sm font-bold text-primary mb-1">Stripe Staff Eng</div>
+<div class="text-xs text-primary/80">$240k Base • Remote</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Testimonials -->
+<section class="px-10 py-24 max-w-[1440px] mx-auto text-center">
+<h2 class="font-headline text-3xl font-bold text-white mb-16">Trusted by High-Performance Professionals</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="bg-surface-container-low p-8 rounded-2xl text-left border border-white/5 hover:border-primary/20 transition-colors">
+<p class="text-on-surface-variant leading-relaxed mb-6 italic">"CareerCopilot completely changed how I approach my job search. The match scores are incredibly accurate, and I landed an offer at Google within 3 weeks."</p>
+<div class="flex items-center gap-4">
+<div class="h-10 w-10 rounded-full bg-surface-variant overflow-hidden">
+<img alt="User" data-alt="Portrait of a professional man with short hair and glasses, smiling warmly in a studio setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvEGndzh64xxrryXGU5rdgMPBjfUwjoQl7GK9Ycu-5RKrkDCpuQjdgK_0DGZ5LuI3DlKR2yqM6RWoUoJ4ccceI1rlwIyQ-BUSa6m4ftmoE-o68zoZxT9e5Qy4wZbJdd_uAiPRdhONca3FXi3fUBgpIfM26gCAVan0axu0L0dNKOkQgxbKj9FE_hwMOD4ZiW_G4wzrXbqL_kXaxnkDpGlKdQ6pJe1lQYdhykx5mXfcAQt_txchCxkVLU4GkxpS_5q-3gCxkaeo1F6Bn"/>
+</div>
+<div>
+<div class="text-sm font-bold text-white">David Chen</div>
+<div class="text-xs text-on-surface-variant">Senior Engineer @ Google</div>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-low p-8 rounded-2xl text-left border border-white/5 hover:border-primary/20 transition-colors">
+<p class="text-on-surface-variant leading-relaxed mb-6 italic">"The resume analyzer pointed out gaps I never noticed. Once I optimized based on the AI feedback, my response rate from recruiters tripled."</p>
+<div class="flex items-center gap-4">
+<div class="h-10 w-10 rounded-full bg-surface-variant overflow-hidden">
+<img alt="User" data-alt="Portrait of a confident professional woman with long dark hair, smiling gently towards the camera" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmszsGS9W0mR2Awlc9Ur6jhvW81QwbvKcPgtyNN99pEfuXSiYW72vWFNicrMcCWwSlLFLZgCNpcImWawEYv4agjdxFRy7iHws9ZirIKqFyU0hZ-OCK53ifpOHJ750fjPP_0m4exEO6xQA-0hA5KLukqAUDckZ9o7Pi595mcSDjvE-YMuWOwOpY1GPywS7-dNwMFhhiZTTTGjYxI5bg2ZmAx_kesVUXT1yehAfhahrUw5QPRuatUXvx0r6EkJ3sS1DlKK5o8dDzOZIs"/>
+</div>
+<div>
+<div class="text-sm font-bold text-white">Sarah Jenkins</div>
+<div class="text-xs text-on-surface-variant">Product Lead @ Airbnb</div>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-low p-8 rounded-2xl text-left border border-white/5 hover:border-primary/20 transition-colors">
+<p class="text-on-surface-variant leading-relaxed mb-6 italic">"Managing dozens of applications was a nightmare until I found this. The Kanban board and automated tracking keep me sane and organized."</p>
+<div class="flex items-center gap-4">
+<div class="h-10 w-10 rounded-full bg-surface-variant overflow-hidden">
+<img alt="User" data-alt="Professional man with a friendly expression, wearing a navy blue shirt in a bright office environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuARkZ__FOcTBLnt4oQCtPJ8k2iDJ3Xv0rKdpEeYvmB9yMTTrUwrTGvfZa-uHIOpJDFW0THbC-k2LhkLfGrCqt4IWPy5JOjTXcr5dpfmxb9YCvMsXrEVXcYu-khIgIhxVyj9juZXcBigYtK38phbaCSADeEO_bwZwqjDXw0qdaWYAE4f9LHl0JcEpH9yhEVG0y2nj8WtBnXNy0n6-2aLVcJfS36IjtY4L0H6p0Ag53vkds9g6SiC0dXAfH-N_0NMYj6xTB81Ls7nghJV"/>
+</div>
+<div>
+<div class="text-sm font-bold text-white">Marcus Thorne</div>
+<div class="text-xs text-on-surface-variant">Design Director @ Vercel</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Final CTA Section -->
+<section class="px-10 py-32 max-w-[1440px] mx-auto text-center">
+<div class="relative bg-gradient-to-br from-surface-container-high to-surface-container-low rounded-3xl p-12 md:p-20 overflow-hidden border border-white/10">
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-[100px] -z-10"></div>
+<div class="absolute bottom-0 left-0 w-64 h-64 bg-tertiary/10 blur-[100px] -z-10"></div>
+<h2 class="font-headline text-4xl md:text-5xl font-extrabold text-white mb-6">Join 10,000+ professionals engineering their future.</h2>
+<p class="text-on-surface-variant text-lg mb-12 max-w-2xl mx-auto">
+                    Stop guessing. Start knowing. CareerCopilot gives you the data and intelligence you need to land your dream role in any market.
+                </p>
+<button class="bg-gradient-to-br from-primary to-primary-container text-on-primary-container px-10 py-5 rounded-xl font-bold text-xl hover:scale-105 active:scale-95 transition-transform shadow-2xl shadow-primary/30">
+                    Get Started for Free
+                </button>
+<div class="mt-8 text-on-surface-variant text-sm font-medium">No credit card required. Cancel anytime.</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-[#0b1326] w-full relative bottom-0 tonal-transition-top via-surface-container-low">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-12 px-10 py-20 max-w-[1440px] mx-auto">
+<div class="col-span-2 md:col-span-1">
+<div class="text-lg font-bold font-['Manrope'] text-white mb-6">CareerCopilot</div>
+<p class="font-['Inter'] text-xs uppercase tracking-widest text-slate-500 max-w-[200px]">© 2024 CareerCopilot AI. Engineering the future of work.</p>
+</div>
+<div>
+<h4 class="font-['Inter'] text-xs uppercase tracking-widest text-white mb-6">Platform</h4>
+<div class="flex flex-col gap-4">
+<a class="font-['Inter'] text-xs uppercase tracking-widest text-slate-500 hover:text-[#4edea3] transition-all opacity-80 hover:opacity-100" href="#">Match Engine</a>
+<a class="font-['Inter'] text-xs uppercase tracking-widest text-slate-500 hover:text-[#4edea3] transition-all opacity-80 hover:opacity-100" href="#">Analytics</a>
+<a class="font-['Inter'] text-xs uppercase tracking-widest text-slate-500 hover:text-[#4edea3] transition-all opacity-80 hover:opacity-100" href="#">Resume Builder</a>
+</div>
+</div>
+<div>
+<h4 class="font-['Inter'] text-xs uppercase tracking-widest text-white mb-6">Company</h4>
+<div class="flex flex-col gap-4">
+<a class="font-['Inter'] text-xs uppercase tracking-widest text-slate-500 hover:text-[#4edea3] transition-all opacity-80 hover:opacity-100" href="#">Careers</a>
+<a class="font-['Inter'] text-xs uppercase tracking-widest text-slate-500 hover:text-[#4edea3] transition-all opacity-80 hover:opacity-100" href="#">Privacy</a>
+<a class="font-['Inter'] text-xs uppercase tracking-widest text-slate-500 hover:text-[#4edea3] transition-all opacity-80 hover:opacity-100" href="#">Terms</a>
+</div>
+</div>
+<div>
+<h4 class="font-['Inter'] text-xs uppercase tracking-widest text-white mb-6">Social</h4>
+<div class="flex flex-col gap-4">
+<a class="font-['Inter'] text-xs uppercase tracking-widest text-slate-500 hover:text-[#4edea3] transition-all opacity-80 hover:opacity-100" href="#">Twitter</a>
+<a class="font-['Inter'] text-xs uppercase tracking-widest text-slate-500 hover:text-[#4edea3] transition-all opacity-80 hover:opacity-100" href="#">LinkedIn</a>
+</div>
+</div>
+</div>
+</footer>
+</body></html>
