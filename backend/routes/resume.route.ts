@@ -1,16 +1,21 @@
 import { Router } from "express";
-import multer from "multer";
+import { uploadSingleCv } from "../middlewares/multer.js";
 import { authenticateTokens } from "../middlewares/twoTokenAuth.js";
 import { resumeController } from "../controllers/resume.controller.js";
 import type { AuthenticatedRequest } from "../types/auth.types.js";
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
 
+router.get("/status", authenticateTokens, (req: AuthenticatedRequest, res) =>
+  resumeController.status(req, res),
+);
+router.post("/select", authenticateTokens, (req: AuthenticatedRequest, res) =>
+  resumeController.select(req, res),
+);
 router.post(
   "/upload",
   authenticateTokens,
-  upload.single("cv"),
+  uploadSingleCv,
   (req: AuthenticatedRequest, res) => resumeController.upload(req, res),
 );
 router.post(

@@ -12,6 +12,8 @@ export type ScrapedJob = {
   title: string;
   company: string;
   location: string;
+  salary?: string;
+  jobType?: string;
   description: string;
   skills: string[];
   sourceUrl: string;

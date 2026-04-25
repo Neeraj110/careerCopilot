@@ -1,12 +1,17 @@
 "use client";
 
-import { Search, Bell, HelpCircle, Bot, LogOut } from "lucide-react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { Search, Bell, HelpCircle, Bot, LogOut, Moon, Sun, PanelTop } from "lucide-react";
 import SidebarMobile from "./SidebarMobile";
 import { useAuthStore } from "@/lib/store/auth";
+import { useUiStore } from "@/lib/store/ui";
+import { cn } from "@/lib/utils";
 
 export default function TopNav() {
   const { user, logout } = useAuthStore();
+  const { theme, density, toggleTheme, toggleDensity } = useUiStore();
+  const pathname = usePathname();
   const router = useRouter();
 
   const handleLogout = () => {
@@ -32,22 +37,50 @@ export default function TopNav() {
 
         {/* Nav links */}
         <nav className="hidden md:flex items-center gap-6 font-body text-sm font-medium">
-          <a
-            href="#"
-            className="text-slate-400 hover:text-white transition-colors"
-          >
-            Network
-          </a>
-          <a
-            href="#"
-            className="text-slate-400 hover:text-white transition-colors"
-          >
-            Resources
-          </a>
+          {[
+            { href: "/network", label: "Network" },
+            { href: "/resources", label: "Resources" },
+          ].map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "transition-colors",
+                  isActive
+                    ? "text-primary font-semibold"
+                    : "text-slate-400 hover:text-white",
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
       </div>
 
       <div className="flex items-center gap-3">
+        <button
+          onClick={toggleTheme}
+          className="hover:bg-white/5 rounded-full p-2 transition-colors"
+          title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+        >
+          {theme === "light" ? (
+            <Moon className="w-4 h-4 text-on-surface-variant" />
+          ) : (
+            <Sun className="w-4 h-4 text-on-surface-variant" />
+          )}
+        </button>
+
+        <button
+          onClick={toggleDensity}
+          className="hover:bg-white/5 rounded-full p-2 transition-colors"
+          title={density === "compact" ? "Switch to comfortable density" : "Switch to compact density"}
+        >
+          <PanelTop className="w-4 h-4 text-on-surface-variant" />
+        </button>
+
         {/* AI Assistant button */}
         <button className="hidden sm:flex items-center gap-2 bg-primary-container/10 border border-primary/20 text-primary px-4 py-1.5 rounded-full text-xs font-bold hover:bg-primary/20 transition-colors btn-press">
           <Bot className="w-3.5 h-3.5" />

@@ -8,6 +8,14 @@ const router = Router();
 router.get("/matches", authenticateTokens, (req: AuthenticatedRequest, res) =>
   jobController.matches(req, res),
 );
+router.get("/:id", authenticateTokens, (req: AuthenticatedRequest, res) =>
+  jobController.getJobById(req, res),
+);
+router.post(
+  "/:id/insights",
+  authenticateTokens,
+  (req: AuthenticatedRequest, res) => jobController.getJobInsights(req, res),
+);
 router.post(
   "/cover-letter",
   authenticateTokens,
@@ -15,3 +23,4 @@ router.post(
 );
 
 export default router;
+

@@ -8,3 +8,7 @@ export const atsRequestSchema = z.object({
 export const alignRequestSchema = z.object({
   jobDescription: jobDescriptionSchema,
 });
+
+export const selectResumeSchema = z.object({
+  resumeId: z.string().uuid(),
+});

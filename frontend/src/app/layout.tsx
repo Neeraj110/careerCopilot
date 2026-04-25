@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Roboto } from "next/font/google";
 import "./globals.css";
-import { GsapProvider } from "@/lib/providers";
+import { AppProviders } from "@/lib/providers";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -35,11 +35,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body
         className={`${inter.variable} ${roboto.variable} font-body bg-surface text-on-surface antialiased selection:bg-primary/30`}
       >
-        <GsapProvider>{children}</GsapProvider>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

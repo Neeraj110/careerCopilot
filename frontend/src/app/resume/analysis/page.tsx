@@ -4,7 +4,6 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import {
   XCircle,
-  AlertTriangle,
   Copy,
   Sparkles,
   ArrowLeft,
@@ -12,7 +11,6 @@ import {
   FileSearch,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import { getAtsScore, alignResume, ATSAnalysisResult, ResumeAlignmentResult } from "@/lib/api";
 
 const AtsScoreGauge = dynamic(
@@ -44,8 +42,9 @@ export default function ResumeAnalysisPage() {
       ]);
       setAtsData(ats);
       setAlignmentData(align);
-    } catch (err: any) {
-      setError(err.message || "Failed to analyze resume.");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to analyze resume.";
+      setError(errorMessage);
     } finally {
       setIsAnalyzing(false);
     }

@@ -7,6 +7,7 @@ import helmet from "helmet";
 import userRoutes from "./routes/user.route.js";
 import resumeRoutes from "./routes/resume.route.js";
 import jobsRoutes from "./routes/jobs.route.js";
+import aiRoutes from "./routes/ai.route.js";
 import { logger } from "./libs/logger.js";
 import { requestLogger } from "./middlewares/requestLogger.js";
 import { deleteExpiredJobs, storeScrapedJobs } from "./services/jobStore.js";
@@ -42,6 +43,7 @@ app.use(limiter);
 app.use("/api/users", userRoutes);
 app.use("/api/resume", resumeRoutes);
 app.use("/api/jobs", jobsRoutes);
+app.use("/api/ai", aiRoutes);
 
 app.get("/", (req, res) => {
   logger.info("GET request received for root endpoint");

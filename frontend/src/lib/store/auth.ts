@@ -14,8 +14,15 @@ interface AuthState {
   isLoading: boolean;
 
   // Actions
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<{ success: boolean; error?: string }>;
+  register: (
+    name: string,
+    email: string,
+    password: string,
+  ) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   hydrate: () => Promise<void>;
 }
@@ -43,13 +50,23 @@ export const useAuthStore = create<AuthState>((set) => ({
 
         if (res.ok) {
           const data = await res.json();
-          set({ user: data.user, accessToken: data.accessToken, isAuthenticated: true, isLoading: false });
+          set({
+            user: data.user,
+            accessToken: data.accessToken,
+            isAuthenticated: true,
+            isLoading: false,
+          });
           return;
         }
       } catch {
         // ignore network errors for hydration
       }
-      set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false });
+      set({
+        user: null,
+        accessToken: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
     })();
 
     try {
@@ -74,9 +91,13 @@ export const useAuthStore = create<AuthState>((set) => ({
         return { success: false, error: data.error || "Login failed" };
       }
 
-      set({ user: data.user, accessToken: data.accessToken, isAuthenticated: true });
+      set({
+        user: data.user,
+        accessToken: data.accessToken,
+        isAuthenticated: true,
+      });
       return { success: true };
-    } catch (err) {
+    } catch {
       return { success: false, error: "Network error occurred." };
     }
   },
@@ -96,9 +117,13 @@ export const useAuthStore = create<AuthState>((set) => ({
         return { success: false, error: data.error || "Registration failed" };
       }
 
-      set({ user: data.user, accessToken: data.accessToken, isAuthenticated: true });
+      set({
+        user: data.user,
+        accessToken: data.accessToken,
+        isAuthenticated: true,
+      });
       return { success: true };
-    } catch (err) {
+    } catch {
       return { success: false, error: "Network error occurred." };
     }
   },

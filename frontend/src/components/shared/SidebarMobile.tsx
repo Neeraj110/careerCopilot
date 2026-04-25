@@ -7,9 +7,9 @@ import {
   LayoutDashboard,
   Briefcase,
   FileText,
-  Sparkles,
+  Users2,
+  BookOpen,
   MessageSquare,
-  GitBranch,
   Settings,
   Zap,
   X,
@@ -21,9 +21,9 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/jobs", label: "Jobs", icon: Briefcase },
   { href: "/resume", label: "Resume", icon: FileText },
-  { href: "/insights", label: "Insights", icon: Sparkles },
+  { href: "/network", label: "Network", icon: Users2 },
+  { href: "/resources", label: "Resources", icon: BookOpen },
   { href: "/chat", label: "Chat", icon: MessageSquare },
-  { href: "/tracker", label: "Tracker", icon: GitBranch },
 ];
 
 export function MobileMenuButton() {

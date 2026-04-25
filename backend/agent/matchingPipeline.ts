@@ -1,12 +1,10 @@
 import { END, START, Annotation, StateGraph } from "@langchain/langgraph";
-import { PineconeStore } from "@langchain/pinecone";
 import { Document } from "@langchain/core/documents";
+import { randomUUID } from "node:crypto";
 import type { Job } from "../generated/prisma/client.js";
 import type { MatchedJob } from "../types/job.types.js";
 import {
-  createEmbeddings,
-  createPineconeClient,
-  getPineconeIndexName,
+  createPineconeStore,
 } from "../libs/ai.js";
 import { prisma } from "../libs/prisma.js";
 
@@ -16,6 +14,9 @@ const MatchingPipelineState = Annotation.Root({
   resumeText: Annotation<string>(),
   allJobs: Annotation<Job[]>(),
   matchedJobs: Annotation<MatchedJob[]>(),
+  totalMatches: Annotation<number>(),
+  page: Annotation<number>(),
+  limit: Annotation<number>(),
 });
 
 export type MatchingAgentState = typeof MatchingPipelineState.State;
@@ -59,7 +60,9 @@ async function skillMatchNode(
     .filter((item) => item.matchScore >= 30)
     .sort((a, b) => b.matchScore - a.matchScore);
 
-  return { matchedJobs };
+  const totalMatches = matchedJobs.length;
+
+  return { matchedJobs, totalMatches };
 }
 
 async function vectorRerankNode(
@@ -69,64 +72,84 @@ async function vectorRerankNode(
     return { matchedJobs: [] };
   }
 
+  // Paginate BEFORE the expensive vector operations
+  const skip = ((state.page || 1) - 1) * (state.limit || 5);
+  const topJobs = state.matchedJobs.slice(skip, skip + (state.limit || 5));
+
   try {
-    const embeddings = createEmbeddings();
-    const pineconeClient = createPineconeClient();
-    const pineconeIndex = pineconeClient.Index(getPineconeIndexName());
-    const vectorStore = await PineconeStore.fromExistingIndex(
-      embeddings,
-      {
-        pineconeIndex,
-      },
+    const namespace = `matching-${state.userId}-${randomUUID()}`;
+    const vectorStore = await createPineconeStore({ namespace });
+
+    // FIX: Filter out jobs with empty/null descriptions to prevent
+    // "Vector dimension 0" Pinecone error caused by empty-string embeddings
+    const jobsWithContent = topJobs.filter(
+      (item) => item.job.description && item.job.description.trim().length > 10,
     );
 
-    const topJobs = state.matchedJobs.slice(0, 20);
+    if (jobsWithContent.length === 0) {
+      // No valid descriptions — skip vector rerank, return skill-match order
+      return { matchedJobs: topJobs };
+    }
+
+    const jobIds = jobsWithContent.map(
+      (item, index) => `job-${item.job.id}-${index}`,
+    );
 
     await vectorStore.addDocuments(
-      topJobs.map(
+      jobsWithContent.map(
         (item) =>
           new Document({
             pageContent: item.job.description,
-            metadata: {
-              type: "job",
-              jobId: item.job.id,
-            },
+            metadata: { type: "job", jobId: item.job.id },
           }),
       ),
-      {
-        ids: topJobs.map((item) => `job-${item.job.id}`),
-      },
+      { ids: jobIds },
     );
 
-    const queryEmbedding = await embeddings.embedQuery(state.resumeText);
-
-    const reranked = await Promise.all(
-      topJobs.map(async (item) => {
-        const [result] = await vectorStore.similaritySearchVectorWithScore(
-          queryEmbedding,
-          1,
-          {
-            type: "job",
-            jobId: item.job.id,
-          },
-        );
-
-        const similarity = result?.[1] ?? 0;
-        const adjustedScore = item.matchScore + similarity * 10;
-
-        return {
-          ...item,
-          matchScore: Number(adjustedScore.toFixed(2)),
-        };
-      }),
+    const scoredResults = await vectorStore.similaritySearchWithScore(
+      state.resumeText,
+      jobsWithContent.length,
+      { type: "job" },
     );
+
+    const similarityByJobId = new Map<string, number>();
+    for (const [doc, score] of scoredResults) {
+      const jobId =
+        typeof doc.metadata?.jobId === "string"
+          ? doc.metadata.jobId
+          : undefined;
+      if (jobId && !similarityByJobId.has(jobId)) {
+        similarityByJobId.set(jobId, score);
+      }
+    }
+
+    const reranked = jobsWithContent.map((item) => {
+      const similarity = similarityByJobId.get(item.job.id) ?? 0;
+      const adjustedScore = item.matchScore + similarity * 10;
+
+      return {
+        ...item,
+        matchScore: Number(adjustedScore.toFixed(2)),
+      };
+    });
+
+    // Cleanup: delete job vectors to prevent accumulation
+    try {
+      await vectorStore.delete({ ids: jobIds });
+    } catch (err) {
+      console.warn("Failed to delete job vectors from Pinecone", err);
+    }
+
+    // Merge back any jobs that were skipped (no description) at end of list
+    const rerankedIds = new Set(jobsWithContent.map((j) => j.job.id));
+    const skippedJobs = topJobs.filter((j) => !rerankedIds.has(j.job.id));
 
     reranked.sort((a, b) => b.matchScore - a.matchScore);
-    return { matchedJobs: reranked };
+    return { matchedJobs: [...reranked, ...skippedJobs] };
   } catch (error) {
     // If Pinecone/embedding fails, gracefully fall back to skill-only matching
     console.error("vectorRerankNode failed, using skill-match results:", error);
-    return { matchedJobs: state.matchedJobs };
+    return { matchedJobs: topJobs };
   }
 }
 

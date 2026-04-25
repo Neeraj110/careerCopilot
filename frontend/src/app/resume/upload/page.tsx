@@ -1,10 +1,15 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Upload, FileText, Trash2, ArrowRight, Check } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { uploadResume } from "@/lib/api";
+import {
+  getResumeStatus,
+  selectActiveResume,
+  uploadResume,
+  type ResumeStatus,
+} from "@/lib/api";
 
 type UploadState = "idle" | "uploading" | "complete" | "error";
 
@@ -14,26 +19,29 @@ export default function ResumeUploadPage() {
   const [fileName, setFileName] = useState("");
   const [fileSize, setFileSize] = useState("");
   const [error, setError] = useState("");
+  const [resumeStatus, setResumeStatus] = useState<ResumeStatus | null>(null);
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true);
+  const [isSwitchingResume, setIsSwitchingResume] = useState(false);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) processFile(file);
+  const loadResumeStatus = useCallback(async () => {
+    setIsLoadingStatus(true);
+    try {
+      const status = await getResumeStatus();
+      setResumeStatus(status);
+    } catch {
+      // Keep upload flow usable even if status fetch fails
+    } finally {
+      setIsLoadingStatus(false);
+    }
   }, []);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) processFile(file);
-  };
+  useEffect(() => {
+    void loadResumeStatus();
+  }, [loadResumeStatus]);
 
-  const processFile = async (file: File) => {
-    const validTypes = [
-      "application/pdf",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ];
-    if (!validTypes.includes(file.type)) {
-      setError("Please upload a PDF or DOCX file.");
+  const processFile = useCallback(async (file: File) => {
+    if (file.type !== "application/pdf") {
+      setError("Please upload a PDF file.");
       setUploadState("error");
       return;
     }
@@ -51,9 +59,37 @@ export default function ResumeUploadPage() {
     try {
       await uploadResume(file);
       setUploadState("complete");
-    } catch (err: any) {
-      setError(err.message || "Failed to upload resume.");
+      await loadResumeStatus();
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to upload resume.");
       setUploadState("error");
+    }
+  }, [loadResumeStatus]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+  }, [processFile]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
+
+  const handleResumeSelect = async (resumeId: string) => {
+    if (!resumeId) return;
+    setIsSwitchingResume(true);
+    setError("");
+    try {
+      const status = await selectActiveResume(resumeId);
+      setResumeStatus(status);
+      setUploadState("complete");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to switch resume.");
+    } finally {
+      setIsSwitchingResume(false);
     }
   };
 
@@ -74,6 +110,58 @@ export default function ResumeUploadPage() {
           Upload your latest resume for AI analysis and job matching.
         </p>
       </div>
+
+      {!isLoadingStatus && resumeStatus?.hasResume && (
+        <div className="mb-6 bg-surface-container rounded-2xl p-5 lg:p-6 border border-primary/15">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h3 className="font-headline text-lg font-bold text-white mb-1">
+                Existing Resume In Database
+              </h3>
+              <p className="text-xs text-on-surface-variant">
+                Active CV: {resumeStatus.fileName ?? "N/A"}
+              </p>
+            </div>
+
+            <div className="w-full sm:w-80">
+              <label className="block text-xs uppercase tracking-widest text-on-surface-variant font-bold mb-2">
+                Select CV (Unique ID)
+              </label>
+              <select
+                className="w-full bg-surface-container-high border border-white/10 rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary/30"
+                value={resumeStatus.activeResumeId ?? ""}
+                onChange={(e) => void handleResumeSelect(e.target.value)}
+                disabled={isSwitchingResume}
+              >
+                {resumeStatus.resumes.map((resume) => (
+                  <option key={resume.id} value={resume.id}>
+                    {resume.fileName} ({resume.id.slice(0, 8)})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div className="bg-surface-container-high rounded-lg p-3">
+              <p className="text-on-surface-variant">Resume ID</p>
+              <p className="text-white font-mono mt-1 break-all">
+                {resumeStatus.activeResumeId ?? "-"}
+              </p>
+            </div>
+            <div className="bg-surface-container-high rounded-lg p-3">
+              <p className="text-on-surface-variant">Skills Extracted</p>
+              <p className="text-white font-bold mt-1">{resumeStatus.skills.length}</p>
+            </div>
+            <div className="bg-surface-container-high rounded-lg p-3">
+              <p className="text-on-surface-variant">Vector Status</p>
+              <p className="text-white font-bold mt-1">
+                {resumeStatus.hasVector ? "Available" : "Pending / Failed"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Upload Zone */}
       {uploadState === "idle" || uploadState === "error" ? (
@@ -105,13 +193,13 @@ export default function ResumeUploadPage() {
             Drag and drop your resume
           </h3>
           <p className="text-on-surface-variant text-sm mb-6">
-            PDF, DOCX up to 10MB
+            PDF up to 10MB
           </p>
           <label className="bg-surface-container-highest text-on-surface px-6 py-3 rounded-xl font-bold text-sm hover:bg-surface-bright transition-colors cursor-pointer btn-press">
             Browse Files
             <input
               type="file"
-              accept=".pdf,.docx"
+              accept=".pdf"
               onChange={handleFileSelect}
               className="hidden"
             />
@@ -167,7 +255,7 @@ export default function ResumeUploadPage() {
       )}
 
       {/* Resume Uploaded state */}
-      {uploadState === "complete" && (
+      {(uploadState === "complete" || !!resumeStatus?.hasResume) && (
         <div className="mt-8 space-y-6 animate-fade-in-up">
 
           {/* Continue to Analysis CTA */}

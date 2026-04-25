@@ -1,12 +1,10 @@
 import { Document } from "@langchain/core/documents";
 import { END, START, Annotation, StateGraph } from "@langchain/langgraph";
-import { PineconeStore } from "@langchain/pinecone";
 import { prisma } from "../libs/prisma.js";
 import {
   createEmbeddings,
   createLLM,
-  createPineconeClient,
-  getPineconeIndexName,
+  createPineconeStore,
 } from "../libs/ai.js";
 import { parseJsonFromText } from "../libs/json.js";
 
@@ -49,27 +47,51 @@ async function skillExtractorNode(
 async function vectorUpsertNode(
   state: CVAgentState,
 ): Promise<Partial<CVAgentState>> {
-  const pineconeClient = createPineconeClient();
-  const pineconeIndex = pineconeClient.Index(getPineconeIndexName());
-  const vectorStore = await PineconeStore.fromExistingIndex(createEmbeddings(), {
-    pineconeIndex,
-  });
+  // Validate input before embedding
+  if (!state.rawText || state.rawText.trim().length < 10) {
+    throw new Error(
+      "Resume text too short or empty for vectorization. Please upload a valid PDF.",
+    );
+  }
 
-  await vectorStore.addDocuments(
-    [
-      new Document({
-        pageContent: state.rawText,
-        metadata: {
-          userId: state.userId,
-          resumeId: state.resumeId,
-          type: "resume",
-        },
-      }),
-    ],
-    {
-      ids: [state.userId],
-    },
+  const embeddings = createEmbeddings();
+  const vectorStore = await createPineconeStore();
+
+  // Test embedding to ensure it returns valid dimensions
+  const testEmbedding = await embeddings.embedQuery(
+    state.rawText.slice(0, 100),
   );
+  if (!testEmbedding || testEmbedding.length === 0) {
+    throw new Error("Embedding model returned empty vectors. Check API keys.");
+  }
+  console.log(`✓ Embedding dimension: ${testEmbedding.length}`);
+
+  // Add document with validation
+  try {
+    await vectorStore.addDocuments(
+      [
+        new Document({
+          pageContent: state.rawText,
+          metadata: {
+            userId: state.userId,
+            resumeId: state.resumeId,
+            type: "resume",
+          },
+        }),
+      ],
+      {
+        ids: [state.userId],
+      },
+    );
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    if (errorMsg.includes("dimension") || errorMsg.includes("Vector")) {
+      throw new Error(
+        `Pinecone dimension mismatch. Verify index dimension matches embedding model (Google: 768 dims). Error: ${errorMsg}`,
+      );
+    }
+    throw error;
+  }
 
   await prisma.resume.update({
     where: { id: state.resumeId },

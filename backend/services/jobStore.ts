@@ -13,12 +13,23 @@ export async function storeScrapedJobs(jobs: ScrapedJob[]): Promise<void> {
           title: job.title,
           company: job.company,
           location: job.location,
+          salary: job.salary,
+          jobType: job.jobType,
           description: job.description,
           skills: job.skills,
           sourceUrl: job.sourceUrl,
           expiresAt,
         },
-        update: {},
+        update: {
+          title: job.title,
+          company: job.company,
+          location: job.location,
+          salary: job.salary,
+          jobType: job.jobType,
+          description: job.description,
+          skills: job.skills,
+          expiresAt,
+        },
       });
     } catch (error) {
       logger.error(

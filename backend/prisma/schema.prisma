@@ -14,7 +14,7 @@ model User {
   password        String
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
-  resume          Resume?
+  resumes         Resume[]
   applications    JobApplication[]
   refreshSessions RefreshSession[]
 }
@@ -35,15 +35,20 @@ model RefreshSession {
 
 model Resume {
   id           String           @id @default(uuid())
-  userId       String           @unique
+  userId       String
   fileName     String
+  fileUrl      String?
   rawText      String
   skills       String[]
   vectorId     String?
+  isActive     Boolean          @default(true)
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
   user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   applications JobApplication[]
+
+  @@index([userId])
+  @@index([userId, isActive])
 }
 
 model Job {
@@ -51,6 +56,8 @@ model Job {
   title        String
   company      String
   location     String
+  salary       String?
+  jobType      String?
   description  String
   skills       String[]
   sourceUrl    String           @unique

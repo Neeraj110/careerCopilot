@@ -26,7 +26,10 @@ export function getStatusColor(status: string): { bg: string; text: string } {
     case "interviewing":
       return { bg: "bg-primary/10", text: "text-primary" };
     case "reviewing":
-      return { bg: "bg-surface-container-highest", text: "text-on-surface-variant" };
+      return {
+        bg: "bg-surface-container-highest",
+        text: "text-on-surface-variant",
+      };
     case "application sent":
       return { bg: "bg-tertiary/10", text: "text-tertiary" };
     case "closing soon":
@@ -36,6 +39,26 @@ export function getStatusColor(status: string): { bg: string; text: string } {
     case "rejected":
       return { bg: "bg-error/10", text: "text-error" };
     default:
-      return { bg: "bg-surface-container-highest", text: "text-on-surface-variant" };
+      return {
+        bg: "bg-surface-container-highest",
+        text: "text-on-surface-variant",
+      };
   }
+}
+
+export function sanitizeDisplayText(input: string): string {
+  if (!input) return "";
+
+  return input
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/(?:^|\s)\.?css-[\w-]+\s*\{[^}]+\}/g, " ")
+    .replace(
+      /\b(?:inline-size|block-size|margin-inline-start|margin-inline-end|vertical-align|display|webkit|ms-flex|flex)\s*:[^;{}]+;?/gi,
+      " ",
+    )
+    .replace(/\{[^{}]{0,400}\}/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }

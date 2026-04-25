@@ -6,9 +6,9 @@ import {
   LayoutDashboard,
   Briefcase,
   FileText,
-  Sparkles,
+  Users2,
+  BookOpen,
   MessageSquare,
-  GitBranch,
   Settings,
   Zap,
   LogOut,
@@ -20,9 +20,9 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/jobs", label: "Jobs", icon: Briefcase },
   { href: "/resume", label: "Resume", icon: FileText },
-  { href: "/insights", label: "Insights", icon: Sparkles },
+  { href: "/network", label: "Network", icon: Users2 },
+  { href: "/resources", label: "Resources", icon: BookOpen },
   { href: "/chat", label: "Chat", icon: MessageSquare },
-  { href: "/tracker", label: "Tracker", icon: GitBranch },
 ];
 
 export default function Sidebar() {
@@ -36,7 +36,7 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="h-screen w-64 fixed left-0 top-0 glass-panel border-r border-white/5 flex flex-col p-4 gap-2 shadow-2xl shadow-black/40 z-50 hidden lg:flex">
+    <aside className="hidden lg:[display:flex] h-screen w-64 fixed left-0 top-0 glass-panel border-r border-white/5 flex-col p-4 gap-2 shadow-2xl shadow-black/40 z-50">
       {/* Brand */}
       <div className="mb-8 px-2 flex items-center gap-3">
         <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">

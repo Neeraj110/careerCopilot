@@ -6,13 +6,7 @@ import type { AuthenticatedRequest } from "../types/auth.types.js";
 
 dotenv.config();
 
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} is required`);
-  }
-  return value;
-}
+import { requireEnv } from "../libs/env.js";
 
 const ACCESS_TOKEN_SECRET = requireEnv("ACCESS_TOKEN_SECRET");
 

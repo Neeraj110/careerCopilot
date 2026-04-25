@@ -3,34 +3,34 @@
 import {
   Send,
   Zap,
-  Hourglass,
-  Brain,
-  Sparkles,
-  CheckCircle,
-  Circle,
-  Bookmark,
+  ArrowRight,
+  Target,
+  TrendingUp,
   Plus,
 } from "lucide-react";
-import { cn, getStatusColor, getMatchScoreColor } from "@/lib/utils";
-
-import { useState, useEffect } from "react";
-import { getMatchedJobs, MatchedJob } from "@/lib/api";
+import {
+  cn,
+  getStatusColor,
+  getMatchScoreColor,
+  sanitizeDisplayText,
+} from "@/lib/utils";
+import Skeleton from "@/components/shared/Skeleton";
+import { useQuery } from "@tanstack/react-query";
+import { getMatchedJobs } from "@/lib/api";
 import { useAuthStore } from "@/lib/store/auth";
 
 export default function DashboardPage() {
-  const [jobs, setJobs] = useState<MatchedJob[]>([]);
-  const [loading, setLoading] = useState(true);
   const user = useAuthStore((state) => state.user);
 
-  useEffect(() => {
-    getMatchedJobs()
-      .then((res) => setJobs(res.jobs))
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ['matchedJobs', 1, 5],
+    queryFn: () => getMatchedJobs(1, 5),
+  });
 
-  const avgMatchScore = jobs.length 
-    ? Math.round((jobs.reduce((a, b) => a + b.matchScore, 0) / jobs.length) * 100)
+  const jobs = data?.jobs || [];
+
+  const avgMatchScore = jobs.length
+    ? Math.round(jobs.reduce((a, b) => a + b.matchScore, 0) / jobs.length)
     : 0;
 
   const stats = [
@@ -46,11 +46,71 @@ export default function DashboardPage() {
       icon: Zap,
       iconBg: "bg-secondary/10 text-secondary",
     },
+    {
+      label: "Strong Matches",
+      value: jobs.filter((item) => item.matchScore >= 80).length.toString(),
+      icon: Target,
+      iconBg: "bg-tertiary/10 text-tertiary",
+    },
   ];
 
   if (loading) {
-    return <div className="p-8 text-on-surface-variant">Loading dashboard...</div>;
+    return (
+      <div className="space-y-8 lg:space-y-10" aria-label="Dashboard loading">
+        <div className="space-y-3">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-5 w-96 max-w-full" />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
+          {[...Array(3)].map((_, index) => (
+            <div
+              key={`stats-skeleton-${index}`}
+              className="bg-surface-container rounded-xl p-5 lg:p-6 space-y-4"
+            >
+              <Skeleton className="h-10 w-10 rounded-xl" />
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-10 w-20" />
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+          <div className="lg:col-span-8 bg-surface-container rounded-xl p-4 lg:p-6 space-y-4">
+            <Skeleton className="h-6 w-44" />
+            {[...Array(5)].map((_, index) => (
+              <div
+                key={`table-row-skeleton-${index}`}
+                className="grid grid-cols-12 gap-3 items-center"
+              >
+                <Skeleton className="h-10 col-span-5" />
+                <Skeleton className="h-10 col-span-3 hidden sm:block" />
+                <Skeleton className="h-10 col-span-3 sm:col-span-2" />
+                <Skeleton className="h-10 col-span-4 sm:col-span-2" />
+              </div>
+            ))}
+          </div>
+
+          <div className="lg:col-span-4 space-y-4">
+            <div className="bg-surface-container rounded-xl p-5 lg:p-6 space-y-3">
+              <Skeleton className="h-5 w-36" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-4/5" />
+              <Skeleton className="h-10 w-full rounded-lg" />
+            </div>
+            <div className="bg-surface-container rounded-xl p-5 lg:p-6 space-y-3">
+              <Skeleton className="h-5 w-28" />
+              {[...Array(3)].map((_, index) => (
+                <Skeleton key={`bullet-skeleton-${index}`} className="h-4 w-full" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
+
+  const topJob = jobs[0]?.job;
 
   return (
     <>
@@ -65,7 +125,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Bento Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-8 lg:mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 mb-8 lg:mb-10">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -94,9 +154,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Content Split: Activity Table + AI Insights */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
         {/* Recent Activity */}
-        <div className="lg:col-span-2 space-y-4 lg:space-y-6">
+        <div className="lg:col-span-8 space-y-4 lg:space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="font-headline font-bold text-lg lg:text-xl text-on-surface">
               Recent Activity
@@ -127,7 +187,9 @@ export default function DashboardPage() {
                 <tbody className="divide-y divide-white/5">
                   {jobs.slice(0, 5).map(({ job, matchScore }) => {
                     const statusColors = getStatusColor("Saved");
-                    const scoreInt = Math.round(matchScore * 100);
+                    const scoreInt = Math.round(matchScore);
+                    const cleanCompany = sanitizeDisplayText(job.company) || "Unknown Company";
+                    const cleanTitle = sanitizeDisplayText(job.title) || "Untitled Role";
                     return (
                       <tr
                         key={job.id}
@@ -138,15 +200,15 @@ export default function DashboardPage() {
                             <div
                               className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm bg-primary/20 text-primary"
                             >
-                              {job.company?.[0]?.toUpperCase() || "J"}
+                              {cleanCompany?.[0]?.toUpperCase() || "J"}
                             </div>
                             <span className="text-on-surface font-medium text-sm">
-                              {job.company}
+                              {cleanCompany}
                             </span>
                           </div>
                         </td>
                         <td className="px-4 lg:px-6 py-4 text-on-surface-variant text-sm hidden sm:table-cell">
-                          {job.title}
+                          {cleanTitle}
                         </td>
                         <td className="px-4 lg:px-6 py-4">
                           <div className="flex items-center gap-2">
@@ -193,7 +255,37 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* AI Copilot Insights removed due to lack of backend support */}
+        {/* Right utility panel */}
+        <div className="lg:col-span-4 space-y-4 lg:space-y-6">
+          <div className="bg-surface-container rounded-xl p-5 lg:p-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-headline font-bold text-lg text-on-surface">
+                Focus Today
+              </h3>
+              <TrendingUp className="w-4 h-4 text-primary" />
+            </div>
+            <p className="text-on-surface-variant text-sm leading-relaxed mb-4">
+              {topJob
+                ? `Your best current match is ${sanitizeDisplayText(topJob.title)} at ${sanitizeDisplayText(topJob.company)}. Tailor your resume and apply while this role is still open.`
+                : "Upload and analyze a resume to unlock personalized match recommendations."}
+            </p>
+            <button className="w-full rounded-lg bg-primary/15 text-primary font-semibold py-2.5 text-sm hover:bg-primary/25 transition-colors flex items-center justify-center gap-2">
+              Open AI Suggestions
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="bg-surface-container rounded-xl p-5 lg:p-6">
+            <h4 className="font-headline font-bold text-base text-on-surface mb-3">
+              Next Steps
+            </h4>
+            <ul className="space-y-2 text-sm text-on-surface-variant">
+              <li>Refine resume keywords to match top 3 roles.</li>
+              <li>Prioritize jobs above 80% match score first.</li>
+              <li>Use chat copilot for interview prep questions.</li>
+            </ul>
+          </div>
+        </div>
       </div>
 
       {/* Floating Action Button */}
