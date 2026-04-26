@@ -11,7 +11,7 @@ import { requireEnv } from "../libs/env.js";
 const ACCESS_TOKEN_SECRET = requireEnv("ACCESS_TOKEN_SECRET");
 
 export const authenticateTokens = async (
-  req: AuthenticatedRequest,
+  req: any,
   res: Response,
   next: NextFunction,
 ) => {

@@ -217,3 +217,20 @@ export async function sendChatMessage(
     body: JSON.stringify({ message, jobId, conversationHistory }),
   });
 }
+
+export type LearningResource = {
+  title: string;
+  detail: string;
+  type: string;
+  estimatedTime: string;
+  searchQuery: string;
+};
+
+export async function generateLearningResources(
+  skills: string[],
+): Promise<{ resources: LearningResource[] }> {
+  return apiFetch<{ resources: LearningResource[] }>(`/api/ai/resources`, {
+    method: "POST",
+    body: JSON.stringify({ skills }),
+  });
+}

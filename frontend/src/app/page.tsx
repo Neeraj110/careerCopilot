@@ -1,3 +1,8 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/lib/store/auth";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
@@ -19,6 +24,32 @@ const ScrollReveal = dynamic(
 );
 
 export default function LandingPage() {
+  const { isAuthenticated, isLoading, hydrate } = useAuthStore();
+  const router = useRouter();
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace("/dashboard");
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  if (isLoading || isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-surface">
+        <div className="flex flex-col items-center gap-4 animate-pulse">
+          <div className="w-12 h-12 rounded-xl gradient-primary opacity-60 flex items-center justify-center">
+             <Zap className="w-6 h-6 text-on-primary-container" />
+          </div>
+          <div className="h-3 w-32 bg-surface-container-high rounded-full" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-surface text-on-surface min-h-screen">
       {/* ── Navbar ── */}
@@ -42,9 +73,9 @@ export default function LandingPage() {
             </a>
           </div>
           <div className="flex items-center gap-4">
-            <button className="text-slate-400 font-medium text-sm hover:text-white transition-colors hidden sm:block">
+            <Link href="/login" className="text-slate-400 font-medium text-sm hover:text-white transition-colors hidden sm:block">
               Log In
-            </button>
+            </Link>
             <Link
               href="/dashboard"
               className="gradient-primary text-on-primary-container px-5 py-2 rounded-xl font-bold text-sm hover:scale-105 active:scale-95 transition-transform"

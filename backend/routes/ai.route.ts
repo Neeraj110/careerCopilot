@@ -9,4 +9,8 @@ router.post("/chat", authenticateTokens, (req: AuthenticatedRequest, res) =>
   aiController.chat(req, res),
 );
 
+router.post("/resources", authenticateTokens, (req: AuthenticatedRequest, res) =>
+  aiController.generateResources(req, res),
+);
+
 export default router;

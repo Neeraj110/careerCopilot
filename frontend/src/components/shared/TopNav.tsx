@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, Bell, HelpCircle, Bot, LogOut, Moon, Sun, PanelTop } from "lucide-react";
+import { Search, LogOut, Moon, Sun, PanelTop } from "lucide-react";
 import SidebarMobile from "./SidebarMobile";
 import { useAuthStore } from "@/lib/store/auth";
 import { useUiStore } from "@/lib/store/ui";
@@ -38,7 +38,6 @@ export default function TopNav() {
         {/* Nav links */}
         <nav className="hidden md:flex items-center gap-6 font-body text-sm font-medium">
           {[
-            { href: "/network", label: "Network" },
             { href: "/resources", label: "Resources" },
           ].map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -81,22 +80,6 @@ export default function TopNav() {
           <PanelTop className="w-4 h-4 text-on-surface-variant" />
         </button>
 
-        {/* AI Assistant button */}
-        <button className="hidden sm:flex items-center gap-2 bg-primary-container/10 border border-primary/20 text-primary px-4 py-1.5 rounded-full text-xs font-bold hover:bg-primary/20 transition-colors btn-press">
-          <Bot className="w-3.5 h-3.5" />
-          AI Assistant
-        </button>
-
-        {/* Notifications */}
-        <button className="hover:bg-white/5 rounded-full p-2 transition-colors relative">
-          <Bell className="w-5 h-5 text-on-surface-variant" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-secondary rounded-full border-2 border-surface" />
-        </button>
-
-        {/* Help */}
-        <button className="hover:bg-white/5 rounded-full p-2 transition-colors hidden sm:block">
-          <HelpCircle className="w-5 h-5 text-on-surface-variant" />
-        </button>
 
         {/* Logout */}
         <button

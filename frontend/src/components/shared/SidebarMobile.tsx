@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Briefcase,
   FileText,
-  Users2,
   BookOpen,
   MessageSquare,
   Settings,
@@ -21,7 +20,6 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/jobs", label: "Jobs", icon: Briefcase },
   { href: "/resume", label: "Resume", icon: FileText },
-  { href: "/network", label: "Network", icon: Users2 },
   { href: "/resources", label: "Resources", icon: BookOpen },
   { href: "/chat", label: "Chat", icon: MessageSquare },
 ];

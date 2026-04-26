@@ -29,9 +29,11 @@ app.use(
 );
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+import passport from "passport";
 app.use(cookieParser());
 app.use(express.static("public"));
 app.use(requestLogger);
+app.use(passport.initialize());
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,

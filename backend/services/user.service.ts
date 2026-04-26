@@ -76,6 +76,14 @@ class UserService {
       };
     }
 
+    if (!user.password) {
+      return {
+        ok: false as const,
+        status: 401,
+        error: "Invalid email or password",
+      };
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return {
@@ -175,6 +183,33 @@ class UserService {
     } catch (e) {
       return { ok: false };
     }
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<UserServiceResult> {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.password) {
+      return { ok: false as const, status: 400, error: "Invalid user or password not set" };
+    }
+
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password!);
+    if (!isPasswordValid) {
+      return { ok: false as const, status: 401, error: "Incorrect current password" };
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    return {
+      ok: true as const,
+      status: 200,
+      message: "Password updated successfully",
+      accessToken: "", // Unused
+      refreshToken: "", // Unused
+      user: { id: user.id, email: user.email, name: user.name },
+    };
   }
 }
 
