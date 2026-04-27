@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getAtsScore, alignResume, ATSAnalysisResult, ResumeAlignmentResult } from "@/lib/api";
+import Skeleton from "@/components/shared/Skeleton";
 
 const AtsScoreGauge = dynamic(
   () => import("@/components/resume/AtsScoreGauge"),
@@ -105,18 +106,64 @@ export default function ResumeAnalysisPage() {
         {/* Right: Analysis Results */}
         <div className="lg:col-span-3 space-y-6">
           {!atsData && !isAnalyzing && (
-             <div className="bg-surface-container rounded-xl p-8 flex flex-col items-center justify-center text-center border border-dashed border-white/10 h-full">
-               <FileSearch className="w-12 h-12 text-on-surface-variant mb-4 opacity-50" />
-               <h3 className="font-headline font-bold text-xl text-white mb-2">Ready for Analysis</h3>
-               <p className="text-sm text-on-surface-variant">Paste a job description and click analyze to see how your resume scores.</p>
-             </div>
+            <div className="bg-surface-container rounded-xl p-8 flex flex-col items-center justify-center text-center border border-dashed border-white/10 h-full">
+              <FileSearch className="w-12 h-12 text-on-surface-variant mb-4 opacity-50" />
+              <h3 className="font-headline font-bold text-xl text-white mb-2">Ready for Analysis</h3>
+              <p className="text-sm text-on-surface-variant">Paste a job description and click analyze to see how your resume scores.</p>
+            </div>
           )}
 
           {isAnalyzing && (
-             <div className="bg-surface-container rounded-xl p-8 flex flex-col items-center justify-center text-center h-full">
-               <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-               <p className="text-sm text-on-surface-variant">AI is reviewing your resume against the job description...</p>
-             </div>
+            <div className="space-y-6">
+              <div className="bg-surface-container rounded-xl p-6 flex flex-col items-center border border-primary/10">
+                <Skeleton className="w-32 h-32 rounded-full mb-4" />
+                <Skeleton className="h-4 w-64 mt-3" />
+              </div>
+              <div className="bg-surface-container rounded-xl p-5 space-y-4">
+                <Skeleton className="h-4 w-32" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Skeleton className="h-3 w-16" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-6 w-16" />
+                      <Skeleton className="h-6 w-20" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-3 w-16" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-6 w-16" />
+                      <Skeleton className="h-6 w-20" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <Skeleton className="h-4 w-40" />
+                {[...Array(2)].map((_, idx) => (
+                  <div key={`skeleton-edit-${idx}`} className="bg-surface-container rounded-xl p-5 border border-primary/10 space-y-3">
+                    <div className="flex items-center justify-between mb-3">
+                      <Skeleton className="h-4 w-20 !rounded-full" />
+                      <Skeleton className="h-4 w-12" />
+                    </div>
+                    <div className="space-y-2">
+                      <Skeleton className="h-3 w-16" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-4/5" />
+                    </div>
+                    <div className="space-y-2 mt-4">
+                      <Skeleton className="h-3 w-16" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-5/6" />
+                    </div>
+                  </div>
+                ))}
+                <div className="bg-surface-container-high rounded-xl p-5 space-y-2">
+                  <Skeleton className="h-3 w-32" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
+              </div>
+            </div>
           )}
 
           {atsData && alignmentData && (
@@ -135,24 +182,24 @@ export default function ResumeAnalysisPage() {
                   Keyword Analysis
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                   <div>
-                     <h5 className="text-xs text-error font-bold mb-2 flex items-center gap-1">
-                       <XCircle className="w-3 h-3" /> Missing
-                     </h5>
-                     <div className="flex flex-wrap gap-2">
-                       {atsData.missingKeywords.length ? atsData.missingKeywords.map((kw) => (
-                         <span key={kw} className="px-2 py-1 bg-error/10 text-error text-[10px] rounded-md font-bold">{kw}</span>
-                       )) : <span className="text-xs text-on-surface-variant">None!</span>}
-                     </div>
-                   </div>
-                   <div>
-                     <h5 className="text-xs text-secondary font-bold mb-2">Matched</h5>
-                     <div className="flex flex-wrap gap-2">
-                       {atsData.matchedKeywords.length ? atsData.matchedKeywords.map((kw) => (
-                         <span key={kw} className="px-2 py-1 bg-secondary/10 text-secondary text-[10px] rounded-md font-bold">{kw}</span>
-                       )) : <span className="text-xs text-on-surface-variant">None.</span>}
-                     </div>
-                   </div>
+                  <div>
+                    <h5 className="text-xs text-error font-bold mb-2 flex items-center gap-1">
+                      <XCircle className="w-3 h-3" /> Missing
+                    </h5>
+                    <div className="flex flex-wrap gap-2">
+                      {atsData.missingKeywords.length ? atsData.missingKeywords.map((kw) => (
+                        <span key={kw} className="px-2 py-1 bg-error/10 text-error text-[10px] rounded-md font-bold">{kw}</span>
+                      )) : <span className="text-xs text-on-surface-variant">None!</span>}
+                    </div>
+                  </div>
+                  <div>
+                    <h5 className="text-xs text-secondary font-bold mb-2">Matched</h5>
+                    <div className="flex flex-wrap gap-2">
+                      {atsData.matchedKeywords.length ? atsData.matchedKeywords.map((kw) => (
+                        <span key={kw} className="px-2 py-1 bg-secondary/10 text-secondary text-[10px] rounded-md font-bold">{kw}</span>
+                      )) : <span className="text-xs text-on-surface-variant">None.</span>}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -197,14 +244,14 @@ export default function ResumeAnalysisPage() {
                   </div>
                 ))}
                 {!alignmentData.suggestedEdits.length && (
-                   <div className="bg-surface-container rounded-xl p-5 border border-primary/10 text-sm text-on-surface-variant">
-                      No specific edits suggested. Great job!
-                   </div>
+                  <div className="bg-surface-container rounded-xl p-5 border border-primary/10 text-sm text-on-surface-variant">
+                    No specific edits suggested. Great job!
+                  </div>
                 )}
-                
+
                 <div className="bg-surface-container-high rounded-xl p-5">
-                   <h4 className="text-xs text-on-surface-variant uppercase tracking-widest font-bold mb-2">Summary Advice</h4>
-                   <p className="text-sm text-on-surface-variant italic">{alignmentData.summaryAdvice}</p>
+                  <h4 className="text-xs text-on-surface-variant uppercase tracking-widest font-bold mb-2">Summary Advice</h4>
+                  <p className="text-sm text-on-surface-variant italic">{alignmentData.summaryAdvice}</p>
                 </div>
               </div>
             </>

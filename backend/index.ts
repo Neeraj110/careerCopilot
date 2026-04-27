@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import userRoutes from "./routes/user.route.js";
+import authRoutes from "./routes/auth.route.js";
 import resumeRoutes from "./routes/resume.route.js";
 import jobsRoutes from "./routes/jobs.route.js";
 import aiRoutes from "./routes/ai.route.js";
@@ -43,6 +44,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 app.use("/api/users", userRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/resume", resumeRoutes);
 app.use("/api/jobs", jobsRoutes);
 app.use("/api/ai", aiRoutes);

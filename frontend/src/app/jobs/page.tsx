@@ -21,44 +21,16 @@ import {
   sanitizeDisplayText,
 } from "@/lib/utils";
 import Link from "next/link";
-
-// ── Mock data ──
-const categories = [
-  { label: "Frontend Engineering", count: 14 },
-  { label: "Full Stack", count: 9 },
-  { label: "Design Engineering", count: 5 },
-  { label: "DevOps / SRE", count: 3 },
-];
-
-const experienceLevels = ["Junior", "Mid-Level", "Senior", "Staff+"];
-
-const skillChips = [
-  "React",
-  "TypeScript",
-  "Node.js",
-  "Python",
-  "AWS",
-  "GraphQL",
-  "Figma",
-  "Docker",
-];
-
-// Mock lists removed for simplicity...
-
+import Skeleton from "@/components/shared/Skeleton";
 import { getMatchedJobs } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 
+// ── Component ──
 export default function JobsPage() {
-
-
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([
-    "Frontend Engineering",
-  ]);
-  const [selectedLevel, setSelectedLevel] = useState("Senior");
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([
-    "React",
-    "TypeScript",
-  ]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedLevel, setSelectedLevel] = useState("");
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -74,6 +46,48 @@ export default function JobsPage() {
   const totalPages = data?.totalPages || 1;
   const totalJobs = data?.totalJobs || 0;
   const error = queryError?.message || "";
+
+  const categories = useMemo(() => {
+    const counts: Record<string, number> = {};
+    jobs.forEach(({ job }) => {
+      const cat = job.jobType || "Full-time";
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return Object.entries(counts).map(([label, count]) => ({ label, count }));
+  }, [jobs]);
+
+  const experienceLevels = useMemo(() => {
+    const levels = new Set<string>();
+    jobs.forEach(({ job }) => {
+      const title = job.title.toLowerCase();
+      if (title.includes("senior") || title.includes("sr") || title.includes("principal")) {
+        levels.add("Senior");
+      } else if (title.includes("junior") || title.includes("jr")) {
+        levels.add("Junior");
+      } else if (title.includes("staff")) {
+        levels.add("Staff+");
+      } else if (title.includes("lead")) {
+        levels.add("Lead");
+      } else {
+        levels.add("Mid-Level");
+      }
+    });
+    const arr = Array.from(levels);
+    return arr.length ? arr : ["Mid-Level"];
+  }, [jobs]);
+
+  const skillChips = useMemo(() => {
+    const counts: Record<string, number> = {};
+    jobs.forEach(({ job }) => {
+      job.skills.forEach((s) => {
+        counts[s] = (counts[s] || 0) + 1;
+      });
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([skill]) => skill);
+  }, [jobs]);
 
   const toggleCategory = (cat: string) =>
     setSelectedCategories((prev) =>
@@ -96,6 +110,33 @@ export default function JobsPage() {
     if (searchQuery && !cleanTitle.includes(searchQuery.toLowerCase()) && !cleanCompany.includes(searchQuery.toLowerCase())) {
       return false;
     }
+    if (selectedCategories.length > 0) {
+      const match = selectedCategories.includes(job.jobType || "Full-time");
+      if (!match) return false;
+    }
+
+    if (selectedLevel) {
+      const title = cleanTitle;
+      const seniorityMap = {
+        "Senior": title.includes("senior") || title.includes("sr") || title.includes("principal"),
+        "Junior": title.includes("junior") || title.includes("jr"),
+        "Staff+": title.includes("staff"),
+        "Lead": title.includes("lead")
+      };
+
+      const isSenior = seniorityMap["Senior"];
+      const isJunior = seniorityMap["Junior"];
+      const isStaff = seniorityMap["Staff+"];
+      const isLead = seniorityMap["Lead"];
+      const isMid = !isSenior && !isJunior && !isStaff && !isLead;
+
+      if (selectedLevel === "Senior" && !isSenior) return false;
+      if (selectedLevel === "Junior" && !isJunior) return false;
+      if (selectedLevel === "Staff+" && !isStaff) return false;
+      if (selectedLevel === "Lead" && !isLead) return false;
+      if (selectedLevel === "Mid-Level" && !isMid) return false;
+    }
+
     if (selectedSkills.length > 0) {
       const jobSkillsLower = job.skills.map(s => s.toLowerCase());
       if (!selectedSkills.some(s => jobSkillsLower.includes(s.toLowerCase()))) {
@@ -161,44 +202,52 @@ export default function JobsPage() {
               Role Category
             </h4>
             <div className="space-y-2">
-              {categories.map((cat) => (
-                <label
-                  key={cat.label}
-                  onClick={() => toggleCategory(cat.label)}
-                  className="flex items-center gap-3 cursor-pointer group"
-                >
-                  <div
-                    className={cn(
-                      "w-4 h-4 rounded border-2 flex items-center justify-center transition-colors",
-                      selectedCategories.includes(cat.label)
-                        ? "bg-primary border-primary"
-                        : "border-outline-variant/40 group-hover:border-primary/50"
-                    )}
+              {loading ? (
+                <>
+                  <Skeleton className="h-6 w-full" />
+                  <Skeleton className="h-6 w-5/6" />
+                  <Skeleton className="h-6 w-4/6" />
+                </>
+              ) : (
+                categories.map((cat) => (
+                  <label
+                    key={cat.label}
+                    onClick={() => toggleCategory(cat.label)}
+                    className="flex items-center gap-3 cursor-pointer group"
                   >
-                    {selectedCategories.includes(cat.label) && (
-                      <svg
-                        className="w-2.5 h-2.5 text-on-primary-container"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                  <span className="text-sm text-on-surface-variant group-hover:text-on-surface transition-colors flex-1">
-                    {cat.label}
-                  </span>
-                  <span className="text-xs text-outline font-medium">
-                    {cat.count}
-                  </span>
-                </label>
-              ))}
+                    <div
+                      className={cn(
+                        "w-4 h-4 rounded border-2 flex items-center justify-center transition-colors",
+                        selectedCategories.includes(cat.label)
+                          ? "bg-primary border-primary"
+                          : "border-outline-variant/40 group-hover:border-primary/50"
+                      )}
+                    >
+                      {selectedCategories.includes(cat.label) && (
+                        <svg
+                          className="w-2.5 h-2.5 text-on-primary-container"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                    <span className="text-sm text-on-surface-variant group-hover:text-on-surface transition-colors flex-1">
+                      {cat.label}
+                    </span>
+                    <span className="text-xs text-outline font-medium">
+                      {cat.count}
+                    </span>
+                  </label>
+                ))
+              )}
             </div>
           </div>
 
@@ -208,20 +257,28 @@ export default function JobsPage() {
               Experience Level
             </h4>
             <div className="flex flex-wrap gap-2">
-              {experienceLevels.map((level) => (
-                <button
-                  key={level}
-                  onClick={() => setSelectedLevel(level)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-xl text-xs font-bold transition-all btn-press",
-                    selectedLevel === level
-                      ? "bg-primary text-on-primary-container"
-                      : "bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest hover:text-white"
-                  )}
-                >
-                  {level}
-                </button>
-              ))}
+              {loading ? (
+                <>
+                  <Skeleton className="h-8 w-20 rounded-xl" />
+                  <Skeleton className="h-8 w-24 rounded-xl" />
+                  <Skeleton className="h-8 w-16 rounded-xl" />
+                </>
+              ) : (
+                experienceLevels.map((level) => (
+                  <button
+                    key={level}
+                    onClick={() => setSelectedLevel(prev => prev === level ? "" : level)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-xl text-xs font-bold transition-all btn-press",
+                      selectedLevel === level
+                        ? "bg-primary text-on-primary-container"
+                        : "bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest hover:text-white"
+                    )}
+                  >
+                    {level}
+                  </button>
+                ))
+              )}
             </div>
           </div>
 
@@ -231,23 +288,34 @@ export default function JobsPage() {
               Priority Skills
             </h4>
             <div className="flex flex-wrap gap-2">
-              {skillChips.map((skill) => (
-                <button
-                  key={skill}
-                  onClick={() => toggleSkill(skill)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-xl text-xs font-medium transition-all",
-                    selectedSkills.includes(skill)
-                      ? "bg-primary/15 text-primary border border-primary/20"
-                      : "bg-surface-container-high text-on-surface-variant hover:text-white border border-transparent"
-                  )}
-                >
-                  {selectedSkills.includes(skill) && (
-                    <X className="w-3 h-3 inline mr-1 -mt-0.5" />
-                  )}
-                  {skill}
-                </button>
-              ))}
+              {loading ? (
+                <>
+                  <Skeleton className="h-8 w-16 rounded-xl" />
+                  <Skeleton className="h-8 w-20 rounded-xl" />
+                  <Skeleton className="h-8 w-14 rounded-xl" />
+                  <Skeleton className="h-8 w-24 rounded-xl" />
+                  <Skeleton className="h-8 w-16 rounded-xl" />
+                  <Skeleton className="h-8 w-20 rounded-xl" />
+                </>
+              ) : (
+                skillChips.map((skill) => (
+                  <button
+                    key={skill}
+                    onClick={() => toggleSkill(skill)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-xl text-xs font-medium transition-all",
+                      selectedSkills.includes(skill)
+                        ? "bg-primary/15 text-primary border border-primary/20"
+                        : "bg-surface-container-high text-on-surface-variant hover:text-white border border-transparent"
+                    )}
+                  >
+                    {selectedSkills.includes(skill) && (
+                      <X className="w-3 h-3 inline mr-1 -mt-0.5" />
+                    )}
+                    {skill}
+                  </button>
+                ))
+              )}
             </div>
           </div>
         </aside>
@@ -260,8 +328,35 @@ export default function JobsPage() {
             </div>
           )}
           {loading && (
-            <div className="text-center py-8 text-on-surface-variant">
-              Loading matches...
+            <div className="space-y-4">
+              {[...Array(5)].map((_, idx) => (
+                <div
+                  key={`skeleton-job-${idx}`}
+                  className="bg-surface-container rounded-xl p-5"
+                >
+                  <div className="flex items-start gap-4">
+                    <Skeleton className="w-11 h-11 flex-shrink-0" />
+                    <div className="flex-1 space-y-4">
+                      <div className="flex justify-between">
+                        <div className="space-y-2">
+                          <Skeleton className="h-5 w-48" />
+                          <Skeleton className="h-3 w-32" />
+                        </div>
+                        <Skeleton className="h-6 w-16 !rounded-full" />
+                      </div>
+                      <div className="flex gap-4">
+                        <Skeleton className="h-3 w-16" />
+                        <Skeleton className="h-3 w-16" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                      <div className="space-y-2">
+                        <Skeleton className="h-3 w-full" />
+                        <Skeleton className="h-3 w-5/6" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
           {!loading && filteredJobs.length === 0 && !error && (

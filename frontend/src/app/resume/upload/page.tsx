@@ -1,15 +1,24 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Upload, FileText, Trash2, ArrowRight, Check } from "lucide-react";
+import {
+  Upload,
+  FileText,
+  Trash2,
+  ArrowRight,
+  Check,
+  LocateFixed,
+} from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
+  detectPreferredLocation,
   getResumeStatus,
   selectActiveResume,
   uploadResume,
   type ResumeStatus,
 } from "@/lib/api";
+import Skeleton from "@/components/shared/Skeleton";
 
 type UploadState = "idle" | "uploading" | "complete" | "error";
 
@@ -22,6 +31,124 @@ export default function ResumeUploadPage() {
   const [resumeStatus, setResumeStatus] = useState<ResumeStatus | null>(null);
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   const [isSwitchingResume, setIsSwitchingResume] = useState(false);
+  const [preferredLocation, setPreferredLocation] = useState("");
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [latestLocationFetch, setLatestLocationFetch] = useState<{
+    location: string;
+    source: string;
+    fetchedAt: string;
+    ip: string;
+  } | null>(null);
+  const [locationFetchError, setLocationFetchError] = useState("");
+
+  const setDetectedLocationResult = (
+    location: string,
+    source: string,
+    ip = "",
+    fetchedAtIso = new Date().toISOString(),
+  ) => {
+    if (location) {
+      setPreferredLocation(location);
+    }
+    setLatestLocationFetch({
+      location: location || "Not found",
+      source,
+      fetchedAt: new Date(fetchedAtIso).toLocaleString(),
+      ip,
+    });
+  };
+
+  const detectLocationFromBrowser = async (): Promise<boolean> => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      return false;
+    }
+
+    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 600000,
+      });
+    }).catch(() => null);
+
+    if (!position) {
+      return false;
+    }
+
+    const { latitude, longitude } = position.coords;
+    const reverseRes = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`,
+      {
+        headers: {
+          Accept: "application/json",
+        },
+      },
+    );
+
+    if (!reverseRes.ok) {
+      return false;
+    }
+
+    const payload = (await reverseRes.json()) as {
+      address?: {
+        city?: string;
+        town?: string;
+        village?: string;
+        state?: string;
+        country?: string;
+      };
+    };
+
+    const city =
+      payload.address?.city ||
+      payload.address?.town ||
+      payload.address?.village ||
+      payload.address?.state ||
+      "";
+    const country = payload.address?.country || "";
+    const location = city && country ? `${city}, ${country}` : country;
+
+    if (!location) {
+      return false;
+    }
+
+    setDetectedLocationResult(
+      location,
+      "browser-geolocation",
+      "",
+      new Date().toISOString(),
+    );
+    return true;
+  };
+
+  const fetchLatestLocation = useCallback(async (showError = false) => {
+    if (showError) {
+      setIsDetectingLocation(true);
+      setLocationFetchError("");
+    }
+
+    try {
+      const detected = await detectPreferredLocation();
+      if (detected.location || detected.source !== "accept-language") {
+        setDetectedLocationResult(
+          detected.location,
+          detected.source,
+          detected.ip || "",
+          detected.fetchedAt,
+        );
+      }
+    } catch (err: unknown) {
+      if (showError) {
+        const message =
+          err instanceof Error ? err.message : "Failed to auto-detect location.";
+        setLocationFetchError(message);
+      }
+    } finally {
+      if (showError) {
+        setIsDetectingLocation(false);
+      }
+    }
+  }, []);
 
   const loadResumeStatus = useCallback(async () => {
     setIsLoadingStatus(true);
@@ -38,6 +165,10 @@ export default function ResumeUploadPage() {
   useEffect(() => {
     void loadResumeStatus();
   }, [loadResumeStatus]);
+
+  useEffect(() => {
+    void fetchLatestLocation(false);
+  }, [fetchLatestLocation]);
 
   const processFile = useCallback(async (file: File) => {
     if (file.type !== "application/pdf") {
@@ -57,14 +188,29 @@ export default function ResumeUploadPage() {
     setError("");
 
     try {
-      await uploadResume(file);
+      await uploadResume(file, preferredLocation);
       setUploadState("complete");
       await loadResumeStatus();
     } catch (err: unknown) {
       setError((err as Error).message || "Failed to upload resume.");
       setUploadState("error");
     }
-  }, [loadResumeStatus]);
+  }, [loadResumeStatus, preferredLocation]);
+
+  const handleDetectLocation = async () => {
+    setIsDetectingLocation(true);
+    setLocationFetchError("");
+    try {
+      const browserDetected = await detectLocationFromBrowser();
+      if (!browserDetected) {
+        await fetchLatestLocation(false);
+      }
+    } catch {
+      await fetchLatestLocation(false);
+    } finally {
+      setIsDetectingLocation(false);
+    }
+  };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -110,6 +256,23 @@ export default function ResumeUploadPage() {
           Upload your latest resume for AI analysis and job matching.
         </p>
       </div>
+
+      {isLoadingStatus && (
+        <div className="mb-6 bg-surface-container rounded-2xl p-5 lg:p-6 border border-primary/15 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-56" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <Skeleton className="h-10 w-full sm:w-80 rounded-xl" />
+          </div>
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <Skeleton className="h-16 rounded-lg w-full" />
+            <Skeleton className="h-16 rounded-lg w-full" />
+            <Skeleton className="h-16 rounded-lg w-full" />
+          </div>
+        </div>
+      )}
 
       {!isLoadingStatus && resumeStatus?.hasResume && (
         <div className="mb-6 bg-surface-container rounded-2xl p-5 lg:p-6 border border-primary/15">
@@ -207,6 +370,50 @@ export default function ResumeUploadPage() {
           {error && (
             <p className="mt-4 text-error text-sm font-medium">{error}</p>
           )}
+
+          <div className="w-full max-w-xl mt-6 text-left">
+            <label className="block text-xs uppercase tracking-widest text-on-surface-variant font-bold mb-2">
+              Preferred Location (Country or City)
+            </label>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={preferredLocation}
+                onChange={(e) => setPreferredLocation(e.target.value)}
+                placeholder="e.g. India, Bengaluru, Germany"
+                className="flex-1 bg-surface-container-high border border-white/10 rounded-xl px-3 py-2 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              <button
+                type="button"
+                onClick={handleDetectLocation}
+                disabled={isDetectingLocation}
+                className="px-3 py-2 rounded-xl bg-surface-container-highest text-on-surface text-sm font-semibold hover:bg-surface-bright transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+              >
+                <LocateFixed className="w-4 h-4" />
+                {isDetectingLocation ? "Detecting..." : "Auto Detect"}
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-on-surface-variant">
+              We always fetch remote jobs, and also fetch nearby jobs for this location.
+            </p>
+            <p className="mt-1 text-[11px] text-on-surface-variant/80">
+              Tip: Allow browser location permission for accurate Auto Detect results.
+            </p>
+            {latestLocationFetch && (
+              <div className="mt-3 rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-on-surface-variant">
+                <p className="font-semibold text-on-surface">Latest fetch</p>
+                <p className="mt-1">Location: {latestLocationFetch.location}</p>
+                <p>
+                  Source: {latestLocationFetch.source}
+                  {latestLocationFetch.ip ? ` • IP: ${latestLocationFetch.ip}` : ""}
+                </p>
+                <p>Fetched at: {latestLocationFetch.fetchedAt}</p>
+              </div>
+            )}
+            {locationFetchError && (
+              <p className="mt-2 text-xs text-error">{locationFetchError}</p>
+            )}
+          </div>
         </div>
       ) : (
         /* Upload Progress */

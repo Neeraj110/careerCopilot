@@ -335,7 +335,7 @@ export default function RegisterPage() {
           {/* Social login */}
           <div className="grid grid-cols-2 gap-3 mb-8">
             <a
-              href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/users/auth/google`}
+              href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/auth/google`}
               className="flex items-center justify-center gap-2 py-3 bg-surface-container-high rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container-highest hover:text-white transition-colors btn-press"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -359,7 +359,7 @@ export default function RegisterPage() {
               Google
             </a>
             <a
-              href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/users/auth/github`}
+              href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/auth/github`}
               className="flex items-center justify-center gap-2 py-3 bg-surface-container-high rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container-highest hover:text-white transition-colors btn-press"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">

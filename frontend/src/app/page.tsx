@@ -73,6 +73,7 @@ export default function LandingPage() {
             </a>
           </div>
           <div className="flex items-center gap-4">
+          
             <Link href="/login" className="text-slate-400 font-medium text-sm hover:text-white transition-colors hidden sm:block">
               Log In
             </Link>

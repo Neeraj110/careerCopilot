@@ -6,6 +6,10 @@ import type { AuthenticatedRequest } from "../types/auth.types.js";
 
 const router = Router();
 
+router.get("/location", authenticateTokens, (req: AuthenticatedRequest, res) =>
+  resumeController.detectLocation(req, res),
+);
+
 router.get("/status", authenticateTokens, (req: AuthenticatedRequest, res) =>
   resumeController.status(req, res),
 );

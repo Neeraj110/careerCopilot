@@ -7,7 +7,11 @@ import {
   Target,
   TrendingUp,
   Plus,
+  Clock3,
 } from "lucide-react";
+import { useMemo } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   cn,
   getStatusColor,
@@ -21,22 +25,52 @@ import { useAuthStore } from "@/lib/store/auth";
 
 export default function DashboardPage() {
   const user = useAuthStore((state) => state.user);
+  const router = useRouter();
 
-  const { data, isLoading: loading } = useQuery({
-    queryKey: ['matchedJobs', 1, 5],
+  const { data, isLoading: loading, error } = useQuery({
+    queryKey: ["matchedJobs", 1, 10],
     queryFn: () => getMatchedJobs(1, 5),
   });
 
-  const jobs = data?.jobs || [];
+  const jobs = data?.jobs || [] ;
+  const loadError = error instanceof Error ? error.message : "";
 
-  const avgMatchScore = jobs.length
-    ? Math.round(jobs.reduce((a, b) => a + b.matchScore, 0) / jobs.length)
+  const uniqueJobs = useMemo(() => {
+    const seen = new Set<string>();
+
+    return jobs.filter(({ job }) => {
+      const key = sanitizeDisplayText(
+        `${job.company}-${job.title}-${job.location}`,
+      ).toLowerCase();
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+  }, [jobs]);
+
+  const formatRelativeTime = (iso?: string) => {
+    if (!iso) return "recently";
+    const timestamp = new Date(iso).getTime();
+    if (Number.isNaN(timestamp)) return "recently";
+    const diffMs = Date.now() - timestamp;
+    const diffMin = Math.max(1, Math.floor(diffMs / (1000 * 60)));
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHrs = Math.floor(diffMin / 60);
+    if (diffHrs < 24) return `${diffHrs}h ago`;
+    const diffDays = Math.floor(diffHrs / 24);
+    return `${diffDays}d ago`;
+  };
+
+  const avgMatchScore = uniqueJobs.length
+    ? Math.round(uniqueJobs.reduce((a, b) => a + b.matchScore, 0) / uniqueJobs.length)
     : 0;
 
   const stats = [
     {
       label: "Matching Applications",
-      value: jobs.length.toString(),
+      value: uniqueJobs.length.toString(),
       icon: Send,
       iconBg: "bg-primary/10 text-primary",
     },
@@ -48,7 +82,7 @@ export default function DashboardPage() {
     },
     {
       label: "Strong Matches",
-      value: jobs.filter((item) => item.matchScore >= 80).length.toString(),
+      value: uniqueJobs.filter((item) => item.matchScore >= 80).length.toString(),
       icon: Target,
       iconBg: "bg-tertiary/10 text-tertiary",
     },
@@ -110,7 +144,8 @@ export default function DashboardPage() {
     );
   }
 
-  const topJob = jobs[0]?.job;
+  const topJob = uniqueJobs[0]?.job;
+  const topThree = uniqueJobs.slice(0, 3);
 
   return (
     <>
@@ -158,101 +193,162 @@ export default function DashboardPage() {
         {/* Recent Activity */}
         <div className="lg:col-span-8 space-y-4 lg:space-y-6">
           <div className="flex items-center justify-between">
-            <h3 className="font-headline font-bold text-lg lg:text-xl text-on-surface">
-              Recent Activity
-            </h3>
-            <button className="text-primary text-sm font-bold hover:underline">
+            <div>
+              <h3 className="font-headline font-bold text-lg lg:text-xl text-on-surface">
+                Recent Activity
+              </h3>
+              <p className="text-xs text-on-surface-variant mt-1">
+                Latest matched roles based on your resume profile.
+              </p>
+            </div>
+            <Link href="/jobs" className="text-primary text-sm font-bold hover:underline">
               View All
-            </button>
+            </Link>
           </div>
-          <div className="bg-surface-container rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="text-on-surface-variant border-b border-white/5">
-                    <th className="px-4 lg:px-6 py-4 font-label text-xs uppercase tracking-widest font-bold">
-                      Company
-                    </th>
-                    <th className="px-4 lg:px-6 py-4 font-label text-xs uppercase tracking-widest font-bold hidden sm:table-cell">
-                      Role
-                    </th>
-                    <th className="px-4 lg:px-6 py-4 font-label text-xs uppercase tracking-widest font-bold">
-                      Match
-                    </th>
-                    <th className="px-4 lg:px-6 py-4 font-label text-xs uppercase tracking-widest font-bold">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {jobs.slice(0, 5).map(({ job, matchScore }) => {
-                    const statusColors = getStatusColor("Saved");
-                    const scoreInt = Math.round(matchScore);
-                    const cleanCompany = sanitizeDisplayText(job.company) || "Unknown Company";
-                    const cleanTitle = sanitizeDisplayText(job.title) || "Untitled Role";
-                    return (
-                      <tr
-                        key={job.id}
-                        className="hover:bg-surface-container-high transition-colors cursor-pointer"
-                      >
-                        <td className="px-4 lg:px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm bg-primary/20 text-primary"
-                            >
-                              {cleanCompany?.[0]?.toUpperCase() || "J"}
-                            </div>
-                            <span className="text-on-surface font-medium text-sm">
-                              {cleanCompany}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-4 lg:px-6 py-4 text-on-surface-variant text-sm hidden sm:table-cell">
-                          {cleanTitle}
-                        </td>
-                        <td className="px-4 lg:px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <div className="w-12 h-1.5 bg-white/5 rounded-full overflow-hidden">
+
+          {loadError && (
+            <div className="rounded-xl bg-error/10 text-error px-4 py-3 text-sm">
+              Could not load latest activity: {loadError}
+            </div>
+          )}
+
+          {uniqueJobs.length === 0 ? (
+            <div className="bg-surface-container rounded-xl p-6 lg:p-8 text-center">
+              <p className="text-on-surface text-sm lg:text-base font-semibold mb-2">
+                No matched jobs yet.
+              </p>
+              <p className="text-on-surface-variant text-sm mb-5">
+                Upload your resume and refine your profile to unlock personalized job matches.
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <Link
+                  href="/resume/upload"
+                  className="px-4 py-2 rounded-lg bg-primary/15 text-primary text-sm font-semibold hover:bg-primary/25 transition-colors"
+                >
+                  Upload Resume
+                </Link>
+                <Link
+                  href="/jobs"
+                  className="px-4 py-2 rounded-lg bg-surface-container-high text-on-surface text-sm font-semibold hover:bg-surface-container-highest transition-colors"
+                >
+                  Browse Jobs
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-surface-container rounded-xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="text-on-surface-variant border-b border-white/5">
+                      <th className="px-4 lg:px-6 py-4 font-label text-xs uppercase tracking-widest font-bold">
+                        Company
+                      </th>
+                      <th className="px-4 lg:px-6 py-4 font-label text-xs uppercase tracking-widest font-bold hidden sm:table-cell">
+                        Role
+                      </th>
+                      <th className="px-4 lg:px-6 py-4 font-label text-xs uppercase tracking-widest font-bold">
+                        Match
+                      </th>
+                      <th className="px-4 lg:px-6 py-4 font-label text-xs uppercase tracking-widest font-bold hidden md:table-cell">
+                        Updated
+                      </th>
+                      <th className="px-4 lg:px-6 py-4 font-label text-xs uppercase tracking-widest font-bold">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {uniqueJobs.slice(0, 5).map(({ job, matchScore }) => {
+                      const statusColors = getStatusColor("Saved");
+                      const scoreInt = Math.round(matchScore);
+                      const cleanCompany = sanitizeDisplayText(job.company) || "Unknown Company";
+                      const cleanTitle = sanitizeDisplayText(job.title) || "Untitled Role";
+                      return (
+                        <tr
+                          key={job.id}
+                          className="hover:bg-surface-container-high transition-colors cursor-pointer"
+                          onClick={() => router.push(`/jobs/${job.id}`)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              router.push(`/jobs/${job.id}`);
+                            }
+                          }}
+                          tabIndex={0}
+                          role="link"
+                          aria-label={`Open details for ${cleanTitle} at ${cleanCompany}`}
+                        >
+                          <td className="px-4 lg:px-6 py-4">
+                            <div className="flex items-center gap-3">
                               <div
-                                className={cn(
-                                  "h-full rounded-full",
-                                  scoreInt >= 85
-                                    ? "bg-primary"
-                                    : scoreInt >= 70
-                                      ? "bg-secondary"
-                                      : "bg-error"
-                                )}
-                                style={{ width: `${scoreInt}%` }}
-                              />
+                                className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm bg-primary/20 text-primary"
+                              >
+                                {cleanCompany?.[0]?.toUpperCase() || "J"}
+                              </div>
+                              <span className="text-on-surface font-medium text-sm">
+                                {cleanCompany}
+                              </span>
                             </div>
+                          </td>
+                          <td className="px-4 lg:px-6 py-4 text-on-surface-variant text-sm hidden sm:table-cell">
+                            <div className="space-y-0.5">
+                              <p>{cleanTitle}</p>
+                              <p className="text-xs text-on-surface-variant/70">
+                                Recommended for your current resume
+                              </p>
+                            </div>
+                          </td>
+                          <td className="px-4 lg:px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <div className="w-12 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                <div
+                                  className={cn(
+                                    "h-full rounded-full",
+                                    scoreInt >= 85
+                                      ? "bg-primary"
+                                      : scoreInt >= 70
+                                        ? "bg-secondary"
+                                        : "bg-error"
+                                  )}
+                                  style={{ width: `${scoreInt}%` }}
+                                />
+                              </div>
+                              <span
+                                className={cn(
+                                  "text-xs font-bold",
+                                  getMatchScoreColor(scoreInt)
+                                )}
+                              >
+                                {scoreInt}%
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 lg:px-6 py-4 hidden md:table-cell">
+                            <span className="text-xs text-on-surface-variant flex items-center gap-1.5">
+                              <Clock3 className="w-3.5 h-3.5" />
+                              {formatRelativeTime(job.scrapedAt)}
+                            </span>
+                          </td>
+                          <td className="px-4 lg:px-6 py-4">
                             <span
                               className={cn(
-                                "text-xs font-bold",
-                                getMatchScoreColor(scoreInt)
+                                "px-3 py-1 text-xs font-bold rounded-full",
+                                statusColors.bg,
+                                statusColors.text
                               )}
                             >
-                              {scoreInt}%
+                              Saved
                             </span>
-                          </div>
-                        </td>
-                        <td className="px-4 lg:px-6 py-4">
-                          <span
-                            className={cn(
-                              "px-3 py-1 text-xs font-bold rounded-full",
-                              statusColors.bg,
-                              statusColors.text
-                            )}
-                          >
-                            Saved
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Right utility panel */}
@@ -269,29 +365,52 @@ export default function DashboardPage() {
                 ? `Your best current match is ${sanitizeDisplayText(topJob.title)} at ${sanitizeDisplayText(topJob.company)}. Tailor your resume and apply while this role is still open.`
                 : "Upload and analyze a resume to unlock personalized match recommendations."}
             </p>
-            <button className="w-full rounded-lg bg-primary/15 text-primary font-semibold py-2.5 text-sm hover:bg-primary/25 transition-colors flex items-center justify-center gap-2">
+            <Link
+              href={topJob ? `/chat?jobId=${topJob.id}` : "/chat"}
+              className="w-full rounded-lg bg-primary/15 text-primary font-semibold py-2.5 text-sm hover:bg-primary/25 transition-colors flex items-center justify-center gap-2"
+            >
               Open AI Suggestions
               <ArrowRight className="w-4 h-4" />
-            </button>
+            </Link>
           </div>
 
           <div className="bg-surface-container rounded-xl p-5 lg:p-6">
             <h4 className="font-headline font-bold text-base text-on-surface mb-3">
               Next Steps
             </h4>
-            <ul className="space-y-2 text-sm text-on-surface-variant">
-              <li>Refine resume keywords to match top 3 roles.</li>
-              <li>Prioritize jobs above 80% match score first.</li>
-              <li>Use chat copilot for interview prep questions.</li>
-            </ul>
+            <div className="space-y-2">
+              <Link
+                href="/resume/analysis"
+                className="block rounded-lg bg-surface-container-high px-3 py-2.5 text-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors"
+              >
+                Refine resume keywords with ATS analysis
+              </Link>
+              <Link
+                href="/jobs"
+                className="block rounded-lg bg-surface-container-high px-3 py-2.5 text-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors"
+              >
+                Prioritize top matches ({topThree.filter((j) => j.matchScore >= 80).length} above 80%)
+              </Link>
+              <Link
+                href={topJob ? `/chat?jobId=${topJob.id}` : "/chat"}
+                className="block rounded-lg bg-surface-container-high px-3 py-2.5 text-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors"
+              >
+                Practice interview Q&A with AI copilot
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Floating Action Button */}
-      <button className="fixed bottom-6 right-6 lg:bottom-8 lg:right-8 w-14 h-14 gradient-primary text-on-primary rounded-full shadow-2xl shadow-primary/40 flex items-center justify-center group btn-press hover:scale-110 transition-transform z-40">
-        <Plus className="w-6 h-6 group-hover:rotate-12 transition-transform" />
-      </button>
+      {/* Floating Quick Action */}
+      <Link
+        href="/resume/upload"
+        className="fixed bottom-6 right-6 lg:bottom-8 lg:right-8 gradient-primary text-on-primary rounded-full shadow-2xl shadow-primary/40 flex items-center justify-center gap-2 h-12 px-4 group btn-press hover:scale-105 transition-transform z-40"
+        aria-label="Upload new resume"
+      >
+        <Plus className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+        <span className="text-sm font-semibold">Upload CV</span>
+      </Link>
     </>
   );
 }

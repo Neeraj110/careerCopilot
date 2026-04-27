@@ -32,6 +32,7 @@ class ResumeService {
     resumeId: string,
     userId: string,
     rawText: string,
+    preferredLocation: string,
     maxTries: number = 3,
   ) {
     const pipeline = buildCVPipeline();
@@ -44,6 +45,8 @@ class ResumeService {
           rawText,
           skills: [],
           vectorId: "",
+          jobTypeQuery: "",
+          preferredLocation,
         });
 
         const refreshedResume = await prisma.resume.findUnique({
@@ -70,6 +73,7 @@ class ResumeService {
   async uploadCv(
     userId: string,
     file: Express.Multer.File,
+    preferredLocation: string = "",
   ): Promise<UploadCvResponse> {
     if (file.mimetype !== "application/pdf") {
       throw new Error("Only PDF files are supported");
@@ -118,7 +122,13 @@ class ResumeService {
       });
     });
 
-    void this.processResumeWithRetry(resume.id, userId, rawText, 3);
+    void this.processResumeWithRetry(
+      resume.id,
+      userId,
+      rawText,
+      preferredLocation,
+      3,
+    );
 
     return {
       message: "CV uploaded successfully",

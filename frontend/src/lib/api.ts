@@ -107,9 +107,13 @@ async function apiFetch<T>(
 
 export async function uploadResume(
   file: File,
+  preferredLocation?: string,
 ): Promise<{ message: string; resumeId: string }> {
   const formData = new FormData();
   formData.append("cv", file);
+  if (preferredLocation?.trim()) {
+    formData.append("preferredLocation", preferredLocation.trim());
+  }
 
   return apiFetch<{ message: string; resumeId: string }>(`/api/resume/upload`, {
     method: "POST",
@@ -176,6 +180,18 @@ export async function selectActiveResume(
     method: "POST",
     body: JSON.stringify({ resumeId }),
   });
+}
+
+export type DetectedLocation = {
+  source: "ip" | "accept-language" | "browser-geolocation" | "unknown";
+  location: string;
+  country: string;
+  ip: string;
+  fetchedAt: string;
+};
+
+export async function detectPreferredLocation(): Promise<DetectedLocation> {
+  return apiFetch<DetectedLocation>(`/api/resume/location`);
 }
 
 export type JobDetail = {

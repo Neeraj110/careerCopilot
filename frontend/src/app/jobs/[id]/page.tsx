@@ -7,6 +7,7 @@ import {
   getJobById,
   getJobInsights,
 } from "@/lib/api";
+import Skeleton from "@/components/shared/Skeleton";
 import {
   ArrowLeft,
   MapPin,
@@ -192,10 +193,18 @@ export default function JobDetailPage() {
   if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto animate-fade-in">
-        <div className="space-y-4">
-          <div className="skeleton h-8 w-32" />
-          <div className="skeleton h-48 w-full" />
-          <div className="skeleton h-64 w-full" />
+        <div className="space-y-6">
+          <Skeleton className="h-8 w-32" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-5">
+              <Skeleton className="h-48 w-full rounded-xl" />
+              <Skeleton className="h-64 w-full rounded-xl" />
+            </div>
+            <div className="space-y-5 lg:col-span-1">
+              <Skeleton className="h-32 w-full rounded-xl" />
+              <Skeleton className="h-48 w-full rounded-xl" />
+            </div>
+          </div>
         </div>
       </div>
     );
