@@ -24,11 +24,15 @@ RUN npm install
 # Copy application files
 COPY . .
 
-# Generate Prisma Client
+# Generate Prisma Client and Build
 RUN npx prisma generate
+RUN npm run build
+
+# Remove dev dependencies to save space
+RUN npm prune --omit=dev
 
 # Expose port
 EXPOSE 5000
 
 # Start the application
-CMD ["npm", "start"]
+CMD ["node", "dist/index.js"]
