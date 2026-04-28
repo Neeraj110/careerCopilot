@@ -1,6 +1,17 @@
-import type { Request, Response } from "express";
+import type { Request, Response, CookieOptions } from "express";
 import { loginSchema, registerSchema } from "../schemas/user.schemas.js";
 import { userService } from "../services/user.service.js";
+
+const isProduction = process.env.NODE_ENV === "production";
+
+function getRefreshCookieOptions(): CookieOptions {
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  };
+}
 
 class UserController {
   async register(req: Request, res: Response) {
@@ -21,11 +32,7 @@ class UserController {
           .json({ error: serviceResult.error });
       }
 
-      res.cookie("refreshToken", serviceResult.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
+      res.cookie("refreshToken", serviceResult.refreshToken, getRefreshCookieOptions());
 
       return res.status(serviceResult.status).json({
         message: serviceResult.message,
@@ -55,12 +62,7 @@ class UserController {
           .json({ error: serviceResult.error });
       }
 
-      res.cookie("refreshToken", serviceResult.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
+      res.cookie("refreshToken", serviceResult.refreshToken, getRefreshCookieOptions());
 
       return res.status(serviceResult.status).json({
         message: serviceResult.message,
@@ -81,16 +83,11 @@ class UserController {
 
       const serviceResult = await userService.refreshSession(refreshToken);
       if (!serviceResult.ok) {
-        res.clearCookie("refreshToken");
+        res.clearCookie("refreshToken", getRefreshCookieOptions());
         return res.status(serviceResult.status).json({ error: serviceResult.error });
       }
 
-      res.cookie("refreshToken", serviceResult.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
+      res.cookie("refreshToken", serviceResult.refreshToken, getRefreshCookieOptions());
 
       return res.status(serviceResult.status).json({
         message: serviceResult.message,
@@ -107,7 +104,7 @@ class UserController {
       const refreshToken = req.cookies.refreshToken;
       if (refreshToken) {
         await userService.logout(refreshToken);
-        res.clearCookie("refreshToken");
+        res.clearCookie("refreshToken", getRefreshCookieOptions());
       }
       return res.status(200).json({ message: "Logged out successfully" });
     } catch (error) {
@@ -141,12 +138,7 @@ class UserController {
         },
       });
 
-      res.cookie("refreshToken", tokens.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
+      res.cookie("refreshToken", tokens.refreshToken, getRefreshCookieOptions());
 
       return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard`);
     } catch (error) {
