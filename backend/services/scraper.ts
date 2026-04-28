@@ -63,14 +63,19 @@ export async function scrapeJobListings(
   options?: ScrapeOptions,
 ): Promise<ScrapedJob[]> {
   const browser = await puppeteer.launch({
-    headless: process.env.NODE_ENV === "production",
+    headless: true,
+    ...(process.env.PUPPETEER_EXECUTABLE_PATH
+      ? { executablePath: process.env.PUPPETEER_EXECUTABLE_PATH }
+      : {}),
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-blink-features=AutomationControlled",
-      "--disable-dev-shm-usage", // Important for Windows/limited memory systems
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+      "--single-process",
     ],
-  });
+  })
 
   const results: ScrapedJob[] = [];
   const openPages: any[] = [];
