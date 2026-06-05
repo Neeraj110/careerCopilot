@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum DocType {
+  PDF
+  DOCX
+  TXT
+}
+
+enum DocStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum MsgRole {
+  USER
+  AI
+  SYSTEM
+}
+
+model User {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  password  String?
+  googleId  String?    @unique
+  documents Document[]
+  chats     Chat[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Document {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  fileUrl   String
+  publicId  String
+  type      DocType
+  status    DocStatus @default(PENDING)
+  chunks    Chunk[]
+  chats     Chat[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Chunk {
+  id         String   @id @default(uuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  content    String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+}
+
+model Chat {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentId String?
+  document   Document? @relation(fields: [documentId], references: [id])
+  title      String?
+  messages   Message[]
+  createdAt  DateTime  @default(now())
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  role      MsgRole
+  content   String
+  sources   Json?
+  createdAt DateTime @default(now())
+}
