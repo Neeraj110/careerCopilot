@@ -27,7 +27,6 @@ const sidebarItems = [
   { name: "Documents", href: "/dashboard/documents", icon: Files },
   { name: "AI Chat", href: "/dashboard/chat", icon: MessageSquare },
   { name: "Resume Analyzer", href: "/dashboard/resume-analyzer", icon: FileSearch },
-  { name: "ATS Checker", href: "/dashboard/ats-checker", icon: CheckCircle },
   { name: "Resume Match", href: "/dashboard/resume-match", icon: FileCheck2 },
   { name: "Roadmaps", href: "/dashboard/roadmaps", icon: Map },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
@@ -42,7 +41,7 @@ export function Sidebar() {
       initial={{ width: 260 }}
       animate={{ width: isCollapsed ? 80 : 260 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="relative z-20 flex h-screen flex-col border-r border-border bg-card"
+      className="relative z-20 flex h-screen flex-col border-r border-border/40 bg-card/40 backdrop-blur-xl shadow-xl shadow-black/20"
     >
       <div className="flex h-16 items-center justify-between px-4 border-b border-border/50">
         <Link href="/dashboard" className="flex items-center gap-2 overflow-hidden">
@@ -66,42 +65,53 @@ export function Sidebar() {
         <nav className="space-y-1 px-3">
           {sidebarItems.map((item) => {
             const isActive = pathname === item.href;
+            
+            const content = (
+              <span
+                className={cn(
+                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                <item.icon
+                  className={cn(
+                    "h-5 w-5 flex-shrink-0 transition-colors",
+                    isActive
+                      ? "text-primary"
+                      : "text-muted-foreground group-hover:text-foreground",
+                    isCollapsed ? "mr-0" : "mr-3"
+                  )}
+                />
+                {!isCollapsed && (
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    {item.name}
+                  </motion.span>
+                )}
+              </span>
+            );
+
+            if (!isCollapsed) {
+              return (
+                <Link key={item.name} href={item.href}>
+                  {content}
+                </Link>
+              );
+            }
+
             return (
               <Tooltip key={item.name}>
                 <TooltipTrigger render={<Link href={item.href} />}>
-                  <span
-                    className={cn(
-                      "group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                      isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    )}
-                  >
-                    <item.icon
-                      className={cn(
-                        "h-5 w-5 flex-shrink-0 transition-colors",
-                        isActive
-                          ? "text-primary"
-                          : "text-muted-foreground group-hover:text-foreground",
-                        isCollapsed ? "mr-0" : "mr-3"
-                      )}
-                    />
-                    {!isCollapsed && (
-                      <motion.span
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                      >
-                        {item.name}
-                      </motion.span>
-                    )}
-                  </span>
+                  {content}
                 </TooltipTrigger>
-                {isCollapsed && (
-                  <TooltipContent side="right" className="font-semibold">
-                    {item.name}
-                  </TooltipContent>
-                )}
+                <TooltipContent side="right" className="font-semibold">
+                  {item.name}
+                </TooltipContent>
               </Tooltip>
             );
           })}

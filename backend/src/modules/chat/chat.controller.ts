@@ -32,8 +32,8 @@ export const sendMessage = catchAsync(async (
     req.user!.id,
     chatId,
     content,
-    res,
   );
+  res.status(200).json({ status: "success", data: result });
 });
 
 export const getUserChats = catchAsync(async (

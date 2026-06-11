@@ -1,5 +1,5 @@
 import { END, START, Annotation, StateGraph } from "@langchain/langgraph";
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { ChatMistralAI } from "@langchain/mistralai";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { config } from "../../../config";
 
@@ -30,9 +30,9 @@ const ResumeImprovementState = Annotation.Root({
 
 export type ImprovementAgentState = typeof ResumeImprovementState.State;
 
-const model = new ChatGoogleGenerativeAI({
-  apiKey: config.geminiApiKey,
-  model: "gemini-2.0-flash",
+const model = new ChatMistralAI({
+  apiKey: config.mistralApiKey,
+  model: "mistral-large-latest",
   temperature: 0.4,
 });
 

@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { documentsApi } from "@/lib/api/documents";
 import type { Document } from "@/types";
+import { motion } from "framer-motion";
 
 export default function DocumentsPage() {
   const [isDragging, setIsDragging] = useState(false);
@@ -86,7 +87,12 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="flex flex-col gap-6"
+    >
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-heading font-bold tracking-tight">Documents</h1>
         <p className="text-muted-foreground">
@@ -94,7 +100,7 @@ export default function DocumentsPage() {
         </p>
       </div>
 
-      <Card className="border-border/50 bg-card/50 backdrop-blur-sm border-dashed">
+      <Card className="border-border/40 bg-card/30 backdrop-blur-xl border-dashed shadow-xl shadow-black/20 hover:border-primary/50 transition-all duration-300">
         <CardContent className="p-0">
           <div 
             className={`flex flex-col items-center justify-center p-12 transition-colors cursor-pointer ${
@@ -134,7 +140,7 @@ export default function DocumentsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+      <Card className="border-border/40 bg-card/30 backdrop-blur-xl shadow-xl shadow-black/20 hover:border-primary/30 transition-all duration-300">
         <CardHeader className="flex flex-row items-center justify-between pb-4">
           <div>
             <CardTitle>Your Files</CardTitle>
@@ -146,7 +152,7 @@ export default function DocumentsPage() {
               <Input
                 type="search"
                 placeholder="Search files..."
-                className="w-[200px] pl-9 lg:w-[300px]"
+                className="w-[200px] pl-9 lg:w-[300px] bg-card/50 border-border/40 focus:border-primary"
               />
             </div>
             <Button variant="outline" size="icon">
@@ -155,9 +161,9 @@ export default function DocumentsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border border-border/50">
+          <div className="rounded-md border border-border/40 bg-muted/10 backdrop-blur-md">
             <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-muted-foreground">
+              <thead className="bg-muted/20 text-muted-foreground">
                 <tr>
                   <th className="h-10 px-4 text-left font-medium">Name</th>
                   <th className="h-10 px-4 text-left font-medium">Date</th>
@@ -226,6 +232,6 @@ export default function DocumentsPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }

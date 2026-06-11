@@ -1,28 +1,15 @@
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import {
-  DynamicRetrievalMode,
-  GoogleSearchRetrievalTool,
-} from "@google/generative-ai";
+import { ChatMistralAI } from "@langchain/mistralai";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { prisma } from "../../infrastructure/prisma";
 import { AppError } from "../../middlewares/errorHandler";
 import { config } from "../../config";
 import { buildImprovementAgent } from "./agent/improvement.agent";
 
-const searchRetrievalTool: GoogleSearchRetrievalTool = {
-  googleSearchRetrieval: {
-    dynamicRetrievalConfig: {
-      mode: DynamicRetrievalMode.MODE_DYNAMIC,
-      dynamicThreshold: 0.3,
-    },
-  },
-};
-
-const searchGroundedModel = new ChatGoogleGenerativeAI({
-  apiKey: config.geminiApiKey,
-  model: "gemini-2.5-pro",
+const searchGroundedModel = new ChatMistralAI({
+  apiKey: config.mistralApiKey,
+  model: "mistral-small-latest",
   temperature: 1,
-}).bindTools([searchRetrievalTool]);
+});
 
 export const checkATS = async (userId: string, documentId: string) => {
   const document = await prisma.document.findFirst({

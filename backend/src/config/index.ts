@@ -9,6 +9,7 @@ export const config = {
   redisUrl: process.env.REDIS_URL || "redis://localhost:6379",
   chromaUrl: process.env.CHROMA_URL || "http://localhost:8000",
   geminiApiKey: process.env.GEMINI_API_KEY || "",
+  mistralApiKey: process.env.MISTRAL_API_KEY || "",
   tavilyApiKey: process.env.TAVILY_API_KEY || "",
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME || "",

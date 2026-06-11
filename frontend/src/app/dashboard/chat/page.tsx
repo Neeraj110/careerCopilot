@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, Bot, User, FileText, ChevronDown, Plus, Loader2 } from "lucide-react";
+import { Send, Bot, User, FileText, ChevronDown, Plus, Loader2, Trash2, Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,22 +11,68 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { motion } from "framer-motion";
 import { chatApi } from "@/lib/api/chat";
 import { documentsApi } from "@/lib/api/documents";
 import type { Chat, Message, Document } from "@/types";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+const PreBlock = ({ children, ...props }: any) => {
+  const [isCopied, setIsCopied] = useState(false);
+  
+  const extractText = (node: any): string => {
+    if (typeof node === 'string') return node;
+    if (Array.isArray(node)) return node.map(extractText).join('');
+    if (node && node.props && node.props.children) return extractText(node.props.children);
+    return '';
+  };
+  
+  const text = extractText(children);
+  
+  const copy = () => {
+    navigator.clipboard.writeText(text);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
+  
+  return (
+    <div className="relative group my-2 rounded-lg overflow-hidden border border-border/50">
+      <button 
+        onClick={copy}
+        className="absolute top-2 right-2  rounded-md bg-muted/80 backdrop-blur-sm border border-border/50 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all hover:text-foreground hover:bg-muted z-10"
+        title="Copy code"
+      >
+        {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+      </button>
+      <pre {...props} className="bg-muted/30 overflow-x-auto m-0 text-sm leading-snug">
+        {children}
+      </pre>
+    </div>  
+  );
+};
 
 export default function ChatPage() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
-  
+
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
-  
+
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isLoadingChats, setIsLoadingChats] = useState(true);
+
+  const [isNewChatDialogOpen, setIsNewChatDialogOpen] = useState(false);
+  const [newChatTitle, setNewChatTitle] = useState("");
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -40,7 +86,7 @@ export default function ChatPage() {
         ]);
         setChats(chatsRes.data || []);
         setDocuments(docsRes.data || []);
-        
+
         if (chatsRes.data && chatsRes.data.length > 0) {
           setActiveChatId(chatsRes.data[0].id);
         }
@@ -56,7 +102,7 @@ export default function ChatPage() {
   // Fetch active chat messages
   useEffect(() => {
     if (!activeChatId) return;
-    
+
     const fetchChatDetails = async () => {
       try {
         const res = await chatApi.getById(activeChatId);
@@ -66,7 +112,7 @@ export default function ChatPage() {
         console.error("Failed to fetch chat details:", error);
       }
     };
-    
+
     fetchChatDetails();
   }, [activeChatId]);
 
@@ -78,14 +124,36 @@ export default function ChatPage() {
   }, [messages, isTyping]);
 
   const handleCreateChat = async () => {
+    if (!newChatTitle.trim()) return;
     try {
-      const res = await chatApi.create({ title: "New Chat" });
+      const res = await chatApi.create({ title: newChatTitle.trim() });
       setChats([res.data, ...chats]);
       setActiveChatId(res.data.id);
       setMessages([]);
       setActiveDocumentId(null);
+      setIsNewChatDialogOpen(false);
+      setNewChatTitle("");
     } catch (error) {
       console.error("Failed to create chat:", error);
+    }
+  };
+
+  const handleDeleteChat = async (chatId: string) => {
+    try {
+      await chatApi.delete(chatId);
+      setChats(chats.filter((c) => c.id !== chatId));
+      if (activeChatId === chatId) {
+        const remainingChats = chats.filter((c) => c.id !== chatId);
+        if (remainingChats.length > 0) {
+          setActiveChatId(remainingChats[0].id);
+        } else {
+          setActiveChatId(null);
+          setMessages([]);
+          setActiveDocumentId(null);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to delete chat:", error);
     }
   };
 
@@ -97,7 +165,7 @@ export default function ChatPage() {
     let currentChatId = activeChatId;
     if (!currentChatId) {
       try {
-        const res = await chatApi.create({ 
+        const res = await chatApi.create({
           title: input.slice(0, 30) + "...",
           documentId: activeDocumentId || undefined
         });
@@ -112,7 +180,7 @@ export default function ChatPage() {
 
     const messageText = input;
     setInput("");
-    
+
     // Optimistically add user message
     const tempUserId = Date.now().toString();
     setMessages((prev) => [
@@ -126,50 +194,19 @@ export default function ChatPage() {
         createdAt: new Date().toISOString()
       }
     ]);
-    
+
     setIsTyping(true);
 
     let currentAiMessageId = "";
-    
+
     try {
-      await chatApi.sendMessage(currentChatId, messageText, {
-        onToken: (chunk) => {
-          setIsTyping(false);
-          setMessages((prev) => {
-            const lastMsg = prev[prev.length - 1];
-            if (lastMsg && lastMsg.role === "AI" && lastMsg.id === currentAiMessageId) {
-              // Append to existing AI message
-              return [
-                ...prev.slice(0, -1),
-                { ...lastMsg, content: lastMsg.content + chunk }
-              ];
-            } else {
-              // Create new AI message
-              currentAiMessageId = Date.now().toString();
-              return [
-                ...prev,
-                {
-                  id: currentAiMessageId,
-                  chatId: currentChatId!,
-                  role: "AI",
-                  content: chunk,
-                  sources: null,
-                  createdAt: new Date().toISOString()
-                }
-              ];
-            }
-          });
-        },
-        onError: (err) => {
-          console.error("SSE Error:", err);
-          setIsTyping(false);
-        },
-        onDone: () => {
-          setIsTyping(false);
-        }
-      });
+      const response = await chatApi.sendMessage(currentChatId, messageText);
+      const aiMessage = response.data;
+
+      setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
       console.error("Failed to send message:", error);
+    } finally {
       setIsTyping(false);
     }
   };
@@ -178,53 +215,70 @@ export default function ChatPage() {
   const activeChat = chats.find(c => c.id === activeChatId);
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] gap-6">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="flex h-[calc(100vh-7rem)] gap-4"
+    >
       {/* Chat History Sidebar */}
-      <div className="hidden w-64 flex-col rounded-lg border border-border/50 bg-card/50 backdrop-blur-sm lg:flex">
+      <div className="hidden w-56 flex-col rounded-lg border border-border/40 bg-card/30 backdrop-blur-xl shadow-xl shadow-black/20 lg:flex">
         <div className="p-4 border-b border-border/50">
-          <Button onClick={handleCreateChat} className="w-full flex items-center gap-2" variant="outline">
+          <Button onClick={() => { setIsNewChatDialogOpen(true); setNewChatTitle(""); }} className="w-full flex items-center gap-2" variant="outline">
             <Plus className="h-4 w-4" /> New Chat
           </Button>
         </div>
-        <ScrollArea className="flex-1 p-3">
-          {isLoadingChats ? (
-            <div className="flex justify-center p-4">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : chats.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center p-4">No chats yet.</p>
-          ) : (
-            <div className="space-y-2 text-sm">
-              {chats.map((chat) => (
-                <div 
-                  key={chat.id}
-                  onClick={() => setActiveChatId(chat.id)}
-                  className={`rounded-md px-3 py-2 cursor-pointer transition-colors ${
-                    activeChatId === chat.id 
-                      ? "bg-muted font-medium text-foreground" 
+        <div className="flex-1 min-h-0">
+          <ScrollArea className="h-full p-3">
+            {isLoadingChats ? (
+              <div className="flex justify-center p-4">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : chats.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center p-4">No chats yet.</p>
+            ) : (
+              <div className="space-y-2 text-sm ">
+                {chats.map((chat) => (
+                  <div
+                    key={chat.id}
+                    className={`group flex items-center justify-between rounded-md px-3 py-2 cursor-pointer transition-colors ${activeChatId === chat.id
+                      ? "bg-muted font-medium text-foreground"
                       : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                  }`}
-                >
-                  {chat.title || "New Chat"}
-                </div>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
+                      }`}
+                  >
+                    <span className="truncate flex-1" onClick={() => setActiveChatId(chat.id)}>
+                      {chat.title || "New Chat"}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteChat(chat.id);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive hover:text-destructive/80" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </div>
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex flex-1 flex-col overflow-hidden rounded-lg border border-border/50 bg-card/50 backdrop-blur-sm">
+      <div className="flex flex-1 flex-col overflow-hidden rounded-lg border border-border/40 bg-card/30 backdrop-blur-xl shadow-xl shadow-black/20">
         {/* Chat Header */}
-        <div className="flex items-center justify-between border-b border-border/50 p-4">
+        <div className="flex items-center justify-between border-b border-border/50 p-3">
           <h2 className="font-semibold">{activeChat?.title || "New Chat"}</h2>
           <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-transparent px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 max-w-[250px]">
+            <DropdownMenuTrigger className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-transparent px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 max-w-[250px] cursor-pointer">
               <FileText className="h-4 w-4 shrink-0" />
               <span className="truncate">{activeDoc ? activeDoc.title : "No Document Selected"}</span>
               <ChevronDown className="h-4 w-4 shrink-0" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[250px]">
+            <DropdownMenuContent align="end" className="w-[250px] bg-card/80 backdrop-blur-xl border-border/40">
               <DropdownMenuItem onClick={() => setActiveDocumentId(null)}>
                 None
               </DropdownMenuItem>
@@ -238,70 +292,83 @@ export default function ChatPage() {
         </div>
 
         {/* Chat Messages */}
-        <ScrollArea className="flex-1 p-4">
-          <div className="space-y-6">
-            {messages.length === 0 && !isTyping ? (
-              <div className="flex h-full flex-col items-center justify-center text-center p-8 mt-12">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
-                  <Bot className="h-6 w-6" />
-                </div>
-                <h3 className="font-medium text-lg">How can I help you?</h3>
-                <p className="text-muted-foreground mt-2 max-w-sm">
-                  Ask me anything about your resume, interview prep, or career advice.
-                </p>
-              </div>
-            ) : (
-              messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex gap-4 ${
-                    message.role === "USER" ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  {message.role !== "USER" && (
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary/20 text-primary">
-                      <Bot className="h-5 w-5" />
-                    </div>
-                  )}
-                  <div
-                    className={`rounded-xl px-4 py-3 max-w-[80%] ${
-                      message.role === "USER"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted/50 text-foreground border border-border/50"
-                    }`}
-                  >
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+        <div className="flex-1 min-h-0 ">
+          <ScrollArea className="h-full p-4">
+            <div className="space-y-6">
+              {messages.length === 0 && !isTyping ? (
+                <div className="flex h-full flex-col items-center justify-center text-center p-8 mt-12">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary  mb-4">
+                    <Bot className="h-6 w-6" />
                   </div>
-                  {message.role === "USER" && (
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-muted border border-border">
-                      <User className="h-5 w-5 text-muted-foreground" />
+                  <h3 className="font-medium text-lg">How can I help you?</h3>
+                  <p className="text-muted-foreground mt-2 max-w-sm">
+                    Ask me anything about your resume, interview prep, or career advice.
+                  </p>
+                </div>
+              ) : (
+                messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex gap-4 ${message.role === "USER" ? "justify-end" : "justify-start"
+                      }`}
+                  >
+                    {message.role !== "USER" && (
+                      <>
+                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary/20 text-primary">
+                          <Bot className="h-5 w-5" />
+                        </div>
+                      </>
+                    )}
+                    <div
+                      className={`rounded-xl max-w-[85%] ${message.role === "USER"
+                        ? "bg-primary text-primary-foreground px-4 py-3"
+                        : "text-foreground prose prose-sm dark:prose-invert prose-p:leading-relaxed prose-pre:p-0 max-w-none px-2 py-1"
+                        }`}
+                    >
+                      {message.role === "USER" ? (
+                        <p className="text-md leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                      ) : (
+
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]}
+                          components={{ pre: PreBlock }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
+
+                      )}
                     </div>
-                  )}
+                    {message.role === "USER" && (
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-muted border border-border">
+                        <User className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+
+              {isTyping && (
+                <div className="flex gap-4 justify-start">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary/20 text-primary">
+                    <Bot className="h-5 w-5" />
+                  </div>
+                  <div className="rounded-xl px-4 py-4 bg-muted/50 border border-border/50 flex items-center gap-1">
+                    <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0 }} className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
+                    <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
+                    <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }} className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
+                  </div>
                 </div>
-              ))
-            )}
-            
-            {isTyping && (
-              <div className="flex gap-4 justify-start">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary/20 text-primary">
-                  <Bot className="h-5 w-5" />
-                </div>
-                <div className="rounded-xl px-4 py-4 bg-muted/50 border border-border/50 flex items-center gap-1">
-                  <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0 }} className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
-                  <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
-                  <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }} className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
-                </div>
-              </div>
-            )}
-            <div ref={scrollRef} />
-          </div>
-        </ScrollArea>
+              )}
+              <div ref={scrollRef} />
+            </div>
+          </ScrollArea>
+        </div>
 
         {/* Chat Input */}
         <div className="border-t border-border/50 p-4">
           <form
             onSubmit={handleSend}
-            className="flex items-center gap-2 rounded-lg border border-border bg-background p-1 pr-2 shadow-sm focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all"
+            className="flex items-center gap-2 rounded-lg border border-border/40 bg-card/50 p-1 pr-2 shadow-sm focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all"
           >
             <Input
               value={input}
@@ -319,6 +386,29 @@ export default function ChatPage() {
           </p>
         </div>
       </div>
-    </div>
+
+      <Dialog open={isNewChatDialogOpen} onOpenChange={setIsNewChatDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New Chat Name</DialogTitle>
+          </DialogHeader>
+          <Input 
+            value={newChatTitle} 
+            onChange={(e) => setNewChatTitle(e.target.value)}
+            placeholder="Enter chat name..." 
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && newChatTitle.trim()) {
+                handleCreateChat();
+              }
+            }}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewChatDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateChat} disabled={!newChatTitle.trim()}>Create</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </motion.div>
   );
 }

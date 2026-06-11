@@ -1,12 +1,9 @@
-import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
+import { MistralAIEmbeddings } from "@langchain/mistralai";
 import { config } from "../config";
-import { TaskType } from "@google/generative-ai";
 
-const embeddings = new GoogleGenerativeAIEmbeddings({
-  apiKey: config.geminiApiKey,
-  model: "gemini-embedding-001", // 768 dimensions
-  taskType: TaskType.RETRIEVAL_DOCUMENT,
-  title: "Document title",
+const embeddings = new MistralAIEmbeddings({
+  apiKey: config.mistralApiKey,
+  model: "mistral-embed", // 1024 dimensions
 });
 
 /**

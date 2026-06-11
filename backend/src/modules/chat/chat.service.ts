@@ -3,42 +3,28 @@ import { prisma } from "../../infrastructure/prisma";
 import { getCollection } from "../../infrastructure/chroma";
 import { embedText } from "../../infrastructure/embeddings";
 import { AppError } from "../../middlewares/errorHandler";
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { ChatMistralAI } from "@langchain/mistralai";
 import {
   HumanMessage,
   SystemMessage,
   AIMessage,
 } from "@langchain/core/messages";
 import { config } from "../../config";
-import {
-  DynamicRetrievalMode,
-  GoogleSearchRetrievalTool,
-} from "@google/generative-ai";
+
 
 // ─── Gemini Chat Model ───────────────────────────────────────────
 
-const ragModel = new ChatGoogleGenerativeAI({
-  apiKey: config.geminiApiKey,
-  model: "gemini-2.0-flash",
+const ragModel = new ChatMistralAI({
+  apiKey: config.mistralApiKey,
+  model: "mistral-large-latest",
   temperature: 0.3,
-  streaming: true,
 });
 
-const searchGroundedModel = new ChatGoogleGenerativeAI({
-  apiKey: config.geminiApiKey,
-  model: "gemini-2.0-flash",
+const searchGroundedModel = new ChatMistralAI({
+  apiKey: config.mistralApiKey,
+  model: "mistral-large-latest",
   temperature: 1,
-  streaming: true,
-}).bindTools([
-  {
-    googleSearchRetrieval: {
-      dynamicRetrievalConfig: {
-        mode: DynamicRetrievalMode.MODE_DYNAMIC,
-        dynamicThreshold: 0.3,
-      },
-    },
-  } as GoogleSearchRetrievalTool,
-]);
+});
 
 const buildDocumentPrompt = (contextText: string) =>
   `
@@ -141,41 +127,17 @@ const buildHistory = (messages: any[]): (HumanMessage | AIMessage)[] => {
     .filter(Boolean) as (HumanMessage | AIMessage)[];
 };
 
-const streamResponse = async (
+const generateResponse = async (
   model: any,
   messages: (SystemMessage | HumanMessage | AIMessage)[],
-  res: Response,
 ): Promise<string> => {
-  let fullContent = "";
-
-  // Set SSE headers
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-  res.setHeader("X-Accel-Buffering", "no"); // Disable Nginx buffering
-
-  const stream = await model.stream(messages);
-
-  for await (const chunk of stream) {
-    const text =
-      typeof chunk.content === "string"
-        ? chunk.content
-        : chunk.content
-            ?.filter((c: any) => c.type === "text")
-            .map((c: any) => c.text)
-            .join("") || "";
-
-    if (text) {
-      fullContent += text;
-      // SSE format: "data: <content>\n\n"
-      res.write(`data: ${JSON.stringify({ text })}\n\n`);
-    }
-  }
-
-  // Stream end signal
-  res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
-
-  return fullContent;
+  const response = await model.invoke(messages);
+  return typeof response.content === "string"
+    ? response.content
+    : response.content
+        ?.filter((c: any) => c.type === "text")
+        .map((c: any) => c.text)
+        .join("") || "";
 };
 
 // ─── Create Chat Session ─────────────────────────────────────────
@@ -214,7 +176,6 @@ export const sendMessage = async (
   userId: string,
   chatId: string,
   userMessage: string,
-  res: Response,
 ) => {
   // 1. Verify chat belongs to user
   const chat = await prisma.chat.findFirst({
@@ -254,14 +215,13 @@ export const sendMessage = async (
 
     if (hasContext) {
       // Document context found — use RAG
-      aiContent = await streamResponse(
+      aiContent = await generateResponse(
         ragModel,
         [
           new SystemMessage(buildDocumentPrompt(contextText)),
           ...history,
           new HumanMessage(userMessage),
         ],
-        res,
       );
 
       sources = sourceMetadatas
@@ -273,27 +233,25 @@ export const sendMessage = async (
         }));
     } else {
       // No document context — fall back to web search
-      aiContent = await streamResponse(
+      aiContent = await generateResponse(
         searchGroundedModel,
         [
           new SystemMessage(buildSearchFallbackPrompt()),
           ...history,
           new HumanMessage(userMessage),
         ],
-        res,
       );
     }
   }
   // ─── Case 2: General chat ─────────────────────────────────────
   else {
-    aiContent = await streamResponse(
+    aiContent = await generateResponse(
       searchGroundedModel,
       [
         new SystemMessage(buildGeneralPrompt()),
         ...history,
         new HumanMessage(userMessage),
       ],
-      res,
     );
   }
 
@@ -320,15 +278,10 @@ export const sendMessage = async (
     });
   }
 
-  // Send sources and messageId via SSE
-  res.write(
-    `data: ${JSON.stringify({
-      messageId: aiMessage.id,
-      sources,
-    })}\n\n`,
-  );
-
-  res.end(); // Close SSE connection
+  return {
+    ...aiMessage,
+    sources,
+  };
 };
 
 // ─── Get User's Chats ────────────────────────────────────────────

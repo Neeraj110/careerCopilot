@@ -1,5 +1,5 @@
 import { Annotation, START, END, StateGraph } from "@langchain/langgraph";
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { ChatMistralAI } from "@langchain/mistralai";
 import { TavilySearch } from "@langchain/tavily";
 import { config } from "../../../config";
 
@@ -42,9 +42,9 @@ export type RoadmapAgentState = typeof RoadmapState.State;
 
 
 
-const gemini = new ChatGoogleGenerativeAI({
-  apiKey: config.geminiApiKey,
-  model: "gemini-2.5-flash",
+const llm = new ChatMistralAI({
+  apiKey: config.mistralApiKey,
+  model: "mistral-large-latest",
   temperature: 0.3,
 });
 
@@ -55,7 +55,7 @@ const tavily = new TavilySearch({
 });
 
 const invokeJSON = async (prompt: string): Promise<any> => {
-  const response = await gemini.invoke(prompt);
+  const response = await llm.invoke(prompt);
   const text =
     typeof response.content === "string"
       ? response.content

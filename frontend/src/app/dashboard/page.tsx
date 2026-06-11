@@ -84,12 +84,12 @@ export default function DashboardHomePage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
               >
-                <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                <Card className="border-border/40 bg-card/30 backdrop-blur-xl hover:border-primary/30 hover:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all duration-300">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">
                       {stat.name}
                     </CardTitle>
-                    <stat.icon className="h-4 w-4 text-muted-foreground" />
+                    <stat.icon className="h-4 w-4 text-primary opacity-80" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{stat.value}</div>
@@ -105,14 +105,14 @@ export default function DashboardHomePage() {
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
             {/* Recent Documents */}
-            <Card className="md:col-span-1 lg:col-span-4 border-border/50 bg-card/50 backdrop-blur-sm">
+            <Card className="md:col-span-1 lg:col-span-4 border-border/40 bg-card/30 backdrop-blur-xl hover:border-primary/30 hover:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all duration-300">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Recent Documents</CardTitle>
                   <CardDescription>You have uploaded {documents.length} documents.</CardDescription>
                 </div>
                 <Link href="/dashboard/documents" className="inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-md px-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
-                  View All <ArrowRight className="h-4 w-4" />
+                  View All <ArrowRight className="h-4 w-4 text-primary" />
                 </Link>
               </CardHeader>
               <CardContent>
@@ -121,7 +121,7 @@ export default function DashboardHomePage() {
                     <p className="text-sm text-muted-foreground">No documents uploaded yet.</p>
                   ) : (
                     documents.slice(0, 5).map((doc) => (
-                      <div key={doc.id} className="flex items-center justify-between border-b border-border/50 pb-4 last:border-0 last:pb-0">
+                      <div key={doc.id} className="flex items-center justify-between border-b border-border/40 pb-4 last:border-0 last:pb-0">
                         <div className="flex items-center gap-3">
                           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                             <Files className="h-5 w-5" />
@@ -150,14 +150,14 @@ export default function DashboardHomePage() {
             </Card>
 
             {/* ATS Score Chart Placeholder */}
-            <Card className="md:col-span-1 lg:col-span-3 border-border/50 bg-card/50 backdrop-blur-sm">
+            <Card className="md:col-span-1 lg:col-span-3 border-border/40 bg-card/30 backdrop-blur-xl hover:border-purple-500/30 hover:shadow-[0_0_15px_rgba(168,85,247,0.1)] transition-all duration-300">
               <CardHeader>
                 <CardTitle>ATS Score History</CardTitle>
                 <CardDescription>Your resume score trend over time.</CardDescription>
               </CardHeader>
-              <CardContent className="flex h-[250px] items-center justify-center border-t border-border/50">
+              <CardContent className="flex h-[250px] items-center justify-center border-t border-border/40">
                 <div className="flex flex-col items-center text-center text-muted-foreground">
-                  <CheckCircle className="mb-2 h-10 w-10 opacity-20" />
+                  <CheckCircle className="mb-2 h-10 w-10 opacity-20 text-purple-500" />
                   <p>Chart visualization will appear here.</p>
                   <p className="text-sm">Upload more resumes to see trends.</p>
                 </div>

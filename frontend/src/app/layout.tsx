@@ -48,7 +48,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${manrope.variable} ${geistMono.variable} dark`}
+      className={`${inter.variable} ${manrope.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">

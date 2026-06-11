@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileText, Target, Zap, AlertTriangle, ArrowRight, UploadCloud, ChevronDown, Loader2 } from "lucide-react";
+import { FileText, Target, Zap, AlertTriangle, ArrowRight, UploadCloud, ChevronDown, Loader2, Wand2, CheckCircle2 } from "lucide-react";
 import { 
   Card, 
   CardContent, 
@@ -20,7 +20,7 @@ import {
 import { motion } from "framer-motion";
 import { documentsApi } from "@/lib/api/documents";
 import { resumeApi } from "@/lib/api/resume";
-import type { Document, JDMatchResult } from "@/types";
+import type { Document, JDMatchResult, ImproveResult } from "@/types";
 
 export default function ResumeMatchPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -29,6 +29,9 @@ export default function ResumeMatchPage() {
   
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<JDMatchResult | null>(null);
+  
+  const [isImproving, setIsImproving] = useState(false);
+  const [improveResult, setImproveResult] = useState<ImproveResult | null>(null);
 
   useEffect(() => {
     const fetchDocs = async () => {
@@ -46,6 +49,7 @@ export default function ResumeMatchPage() {
     if (!jd || !selectedDocId) return;
     setIsAnalyzing(true);
     setResult(null);
+    setImproveResult(null);
     try {
       const res = await resumeApi.jdMatch(selectedDocId, jd);
       setResult(res.data);
@@ -56,10 +60,30 @@ export default function ResumeMatchPage() {
     }
   };
 
+  const handleImprove = async () => {
+    if (!jd || !selectedDocId) return;
+    setIsImproving(true);
+    setResult(null);
+    setImproveResult(null);
+    try {
+      const res = await resumeApi.improve(selectedDocId, jd);
+      setImproveResult(res.data);
+    } catch (err) {
+      console.error("Failed to improve resume", err);
+    } finally {
+      setIsImproving(false);
+    }
+  };
+
   const selectedDoc = documents.find(d => d.id === selectedDocId);
 
   return (
-    <div className="flex flex-col gap-6">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="flex flex-col gap-6"
+    >
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-heading font-bold tracking-tight">Resume vs Job Description Match</h1>
         <p className="text-muted-foreground">
@@ -67,8 +91,8 @@ export default function ResumeMatchPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-border/50 bg-card/50 backdrop-blur-sm h-fit">
+      <div className="grid gap-6 lg:grid-cols-2 ">
+        <Card className="border-border/40 bg-card/30 backdrop-blur-xl h-fit shadow-xl shadow-black/20 hover:border-primary/30 transition-all duration-300">
           <CardHeader>
             <CardTitle>Job Details</CardTitle>
             <CardDescription>Select a resume and paste the target job description.</CardDescription>
@@ -76,16 +100,16 @@ export default function ResumeMatchPage() {
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <label className="text-sm font-medium">1. Select Resume</label>
-              <div className="flex items-center gap-3 rounded-md border border-border bg-muted/20 p-1">
+              <div className="flex items-center gap-3 rounded-md border border-border/40 bg-muted/10 backdrop-blur-md p-1">
                 <DropdownMenu>
-                  <DropdownMenuTrigger className="w-full flex h-10 items-center justify-between whitespace-nowrap rounded-md bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
+                  <DropdownMenuTrigger className="w-full flex h-10 items-center justify-between whitespace-nowrap rounded-md bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring hover:bg-accent/50 transition-colors disabled:cursor-not-allowed disabled:opacity-50">
                     <div className="flex items-center gap-2 overflow-hidden">
                       <FileText className="h-4 w-4 shrink-0 text-primary" />
                       <span className="truncate">{selectedDoc ? selectedDoc.title : "Select a document..."}</span>
                     </div>
                     <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-[300px]">
+                  <DropdownMenuContent align="start" className="w-[300px] bg-card/80 backdrop-blur-xl border-border/40">
                     {documents.map(doc => (
                       <DropdownMenuItem key={doc.id} onClick={() => setSelectedDocId(doc.id)}>
                         <span className="truncate">{doc.title}</span>
@@ -103,30 +127,40 @@ export default function ResumeMatchPage() {
               <label className="text-sm font-medium">2. Paste Job Description</label>
               <Textarea 
                 placeholder="Paste the job requirements and responsibilities here..."
-                className="min-h-[250px] resize-none"
+                className="h-[250px] min-h-[250px] max-h-[400px] resize-y overflow-y-auto [field-sizing:fixed]"
                 value={jd}
                 onChange={(e) => setJd(e.target.value)}
               />
             </div>
 
-            <Button 
-              className="w-full" 
-              onClick={handleAnalyze} 
-              disabled={!jd || !selectedDocId || isAnalyzing}
-            >
-              {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              {isAnalyzing ? "Analyzing Match..." : "Calculate Match Score"}
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
+              <Button 
+                className="flex-1" 
+                onClick={handleAnalyze} 
+                disabled={!jd || !selectedDocId || isAnalyzing || isImproving}
+              >
+                {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {isAnalyzing ? "Analyzing..." : "Calculate Match Score"}
+              </Button>
+              <Button 
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white border-transparent"
+                onClick={handleImprove} 
+                disabled={!jd || !selectedDocId || isAnalyzing || isImproving}
+              >
+                {isImproving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wand2 className="h-4 w-4 mr-2" />}
+                {isImproving ? "AI Improving..." : "Auto-Improve Resume"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
-        {result && !isAnalyzing ? (
+        {result && !isAnalyzing && !isImproving ? (
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             className="flex flex-col gap-6"
           >
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden relative">
+            <Card className="border-border/40 bg-card/30 backdrop-blur-xl overflow-hidden relative shadow-xl shadow-black/20 hover:border-primary/30 transition-all duration-300">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -153,7 +187,7 @@ export default function ResumeMatchPage() {
             </Card>
 
             {result.missingSkills.length > 0 && (
-              <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+              <Card className="border-border/40 bg-card/30 backdrop-blur-xl shadow-xl shadow-black/20 hover:border-warning/30 transition-all duration-300">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5 text-warning" /> Missing Skills
@@ -175,7 +209,7 @@ export default function ResumeMatchPage() {
             )}
 
             {result.strengths.length > 0 && (
-              <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+              <Card className="border-border/40 bg-card/30 backdrop-blur-xl shadow-xl shadow-black/20 hover:border-success/30 transition-all duration-300">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Zap className="h-5 w-5 text-success" /> Strengths
@@ -194,7 +228,7 @@ export default function ResumeMatchPage() {
             )}
 
             {result.recommendations.length > 0 && (
-              <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+              <Card className="border-border/40 bg-card/30 backdrop-blur-xl shadow-xl shadow-black/20 hover:border-primary/30 transition-all duration-300">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <ArrowRight className="h-5 w-5 text-primary" /> Recommendations
@@ -218,8 +252,62 @@ export default function ResumeMatchPage() {
               </Card>
             )}
           </motion.div>
+        ) : improveResult && !isImproving && !isAnalyzing ? (
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex flex-col gap-6"
+          >
+            <Card className="border-border/40 bg-card/30 backdrop-blur-xl overflow-hidden relative border-blue-500/30 shadow-xl shadow-black/20 hover:border-blue-500/50 transition-all duration-300">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent pointer-events-none" />
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Wand2 className="h-5 w-5 text-blue-500" /> Auto-Improved Bullets
+                </CardTitle>
+                <CardDescription>
+                  AI has rewritten your resume points to better match this JD. Validation Score: <span className="font-bold text-foreground">{improveResult.validationScore}/100</span>
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {improveResult.improvedBullets.map((bullet, i) => (
+                  <div key={i} className="flex flex-col gap-3 rounded-lg border border-border/40 bg-muted/10 backdrop-blur-sm p-4 relative shadow-sm">
+                    <div className="flex gap-3 items-start opacity-70">
+                      <div className="mt-0.5 rounded-full bg-danger/10 p-1 shrink-0">
+                        <AlertTriangle className="h-3 w-3 text-danger" />
+                      </div>
+                      <p className="text-sm text-muted-foreground line-through">{bullet.original}</p>
+                    </div>
+                    <div className="flex gap-3 items-start">
+                      <div className="mt-0.5 rounded-full bg-success/10 p-1 shrink-0">
+                        <CheckCircle2 className="h-3 w-3 text-success" />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-sm font-medium text-foreground">{bullet.improved}</p>
+                        <p className="text-xs text-muted-foreground italic">Reason: {bullet.reason}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {improveResult.gaps?.missing && improveResult.gaps.missing.length > 0 && (
+                  <div className="mt-6 rounded-lg border border-border/50 bg-muted/20 p-4">
+                    <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-warning" /> Remaining Missing Skills
+                    </h4>
+                    <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+                      {improveResult.gaps.missing.map((gap: string, i: number) => <li key={i}>{gap}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         ) : (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/50 bg-card/20 p-12 text-center h-full min-h-[400px]">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/40 bg-card/10 backdrop-blur-xl p-12 text-center h-full min-h-[400px] shadow-xl shadow-black/20"
+          >
             {isAnalyzing ? (
               <>
                 <Loader2 className="mb-4 h-12 w-12 text-primary animate-spin" />
@@ -228,18 +316,26 @@ export default function ResumeMatchPage() {
                   Comparing your resume against the job description requirements.
                 </p>
               </>
+            ) : isImproving ? (
+              <>
+                <Wand2 className="mb-4 h-12 w-12 text-blue-500 animate-pulse" />
+                <h3 className="text-lg font-medium">AI is improving your resume...</h3>
+                <p className="mt-2 text-sm text-muted-foreground max-w-sm">
+                  This takes a moment as our agents iterate and validate the rewrites against the JD.
+                </p>
+              </>
             ) : (
               <>
                 <Target className="mb-4 h-12 w-12 text-muted-foreground/50" />
                 <h3 className="text-lg font-medium text-muted-foreground">Awaiting Input</h3>
                 <p className="mt-2 text-sm text-muted-foreground max-w-sm">
-                  Select a document, paste a job description, and click analyze to see your match score, missing keywords, and improvement suggestions.
+                  Select a document, paste a job description, and choose an action to analyze or automatically improve your resume.
                 </p>
               </>
             )}
-          </div>
+          </motion.div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

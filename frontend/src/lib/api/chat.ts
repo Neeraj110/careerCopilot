@@ -1,5 +1,5 @@
-import { api, streamSSE, type SSECallbacks } from "../api";
-import type { ApiResponse, Chat, ChatWithMessages } from "@/types";
+import { api } from "../api";
+import type { ApiResponse, Chat, ChatWithMessages, Message } from "@/types";
 
 export const chatApi = {
   create: (data: { documentId?: string; title?: string }) =>
@@ -16,7 +16,6 @@ export const chatApi = {
   sendMessage: (
     chatId: string,
     message: string,
-    callbacks: SSECallbacks,
   ) =>
-    streamSSE(`/chats/${chatId}/message`, { content: message }, callbacks),
+    api.post<ApiResponse<Message>>(`/chats/${chatId}/message`, { content: message }),
 };

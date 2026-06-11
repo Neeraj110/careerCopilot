@@ -46,7 +46,12 @@ export default function RoadmapsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="flex flex-col gap-6"
+    >
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-heading font-bold tracking-tight">Learning Roadmaps</h1>
         <p className="text-muted-foreground">
@@ -54,9 +59,9 @@ export default function RoadmapsPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="flex flex-col gap-5">
         {/* Input Form */}
-        <Card className="lg:col-span-1 border-border/50 bg-card/50 backdrop-blur-sm h-fit">
+        <Card className="lg:col-span-1 border-border/40 bg-card/30 backdrop-blur-xl h-fit shadow-xl shadow-black/20 hover:border-primary/30 transition-all duration-300">
           <CardHeader>
             <CardTitle>Create Roadmap</CardTitle>
             <CardDescription>Tell us what you want to learn.</CardDescription>
@@ -68,16 +73,17 @@ export default function RoadmapsPage() {
                 placeholder="e.g., Senior Frontend Developer" 
                 value={skill}
                 onChange={(e) => setSkill(e.target.value)}
+                className="bg-card/50 border-border/40 focus:border-primary"
               />
             </div>
             
             <div className="space-y-2">
               <label className="text-sm font-medium">Current Level</label>
               <Select value={level} onValueChange={(val) => setLevel(val as SkillLevel)}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-card/50 border-border/40 focus:ring-1 focus:ring-primary">
                   <SelectValue placeholder="Select current level" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-card/80 backdrop-blur-xl border-border/40">
                   <SelectItem value="beginner">Beginner</SelectItem>
                   <SelectItem value="intermediate">Intermediate</SelectItem>
                   <SelectItem value="advanced">Advanced</SelectItem>
@@ -89,14 +95,14 @@ export default function RoadmapsPage() {
               <label className="text-sm font-medium">Specific Goal / Context</label>
               <Textarea 
                 placeholder="e.g., I want to be able to build a full-stack SaaS application from scratch."
-                className="resize-none"
+                className="resize-none bg-card/50 border-border/40 focus:border-primary"
                 value={goal}
                 onChange={(e) => setGoal(e.target.value)}
               />
             </div>
 
             <Button 
-              className="w-full mt-2" 
+              className="w-full mt-2 shadow-lg shadow-primary/20" 
               onClick={handleGenerate}
               disabled={!skill || !goal || !level || isGenerating}
             >
@@ -107,7 +113,7 @@ export default function RoadmapsPage() {
         </Card>
 
         {/* Roadmap Display */}
-        <Card className="lg:col-span-2 border-border/50 bg-card/50 backdrop-blur-sm">
+        <Card className="lg:col-span-2 border-border/40 bg-card/30 backdrop-blur-xl max-h-[calc(100vh-200px)] overflow-y-auto shadow-xl shadow-black/20 hover:border-primary/30 transition-all duration-300">
           <CardHeader>
             <CardTitle>Your Learning Path</CardTitle>
             <CardDescription>
@@ -133,7 +139,7 @@ export default function RoadmapsPage() {
                </div>
             ) : roadmapData && (
               <div className="space-y-8 pl-4 py-4">
-                {roadmapData.roadmap.weeks.map((step, i) => (
+                {(roadmapData.roadmap.weeks || roadmapData.roadmap.milestones || []).map((step, i) => (
                   <motion.div 
                     key={i}
                     initial={{ opacity: 0, y: 20 }}
@@ -142,7 +148,7 @@ export default function RoadmapsPage() {
                     className="relative"
                   >
                     {/* Vertical Line connecting steps */}
-                    {i !== roadmapData.roadmap.weeks.length - 1 && (
+                    {i !== (roadmapData.roadmap.weeks || roadmapData.roadmap.milestones || []).length - 1 && (
                       <div className="absolute left-[11px] top-8 bottom-[-2.5rem] w-0.5 bg-border" />
                     )}
                     
@@ -156,7 +162,7 @@ export default function RoadmapsPage() {
                       <div className="flex-1 space-y-3 pb-2">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                           <h4 className="font-semibold text-lg flex items-center gap-2">
-                            {step.title}
+                            {step.title || step.focus || `Week ${step.week}`}
                           </h4>
                           <span className="flex items-center gap-1 text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-md w-fit">
                             <Clock className="h-3 w-3" /> Week {step.week}
@@ -179,7 +185,7 @@ export default function RoadmapsPage() {
 
                           {/* Project */}
                           {step.project && (
-                            <div className="rounded-md border border-border/50 bg-muted/20 p-3">
+                            <div className="rounded-md border border-border/40 bg-muted/10 backdrop-blur-sm p-3 shadow-sm hover:border-primary/20 transition-all duration-300">
                               <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Weekly Project</h5>
                               <p className="text-sm">{step.project}</p>
                             </div>
@@ -208,7 +214,7 @@ export default function RoadmapsPage() {
                 <motion.div 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: roadmapData.roadmap.weeks.length * 0.1 }}
+                  transition={{ delay: (roadmapData.roadmap.weeks || roadmapData.roadmap.milestones || []).length * 0.1 }}
                   className="flex gap-6 mt-8"
                 >
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-success/20 text-success border border-success/30 relative mt-1">
@@ -224,6 +230,6 @@ export default function RoadmapsPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </motion.div>
   );
 }

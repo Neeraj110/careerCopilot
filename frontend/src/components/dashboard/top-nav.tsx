@@ -1,8 +1,10 @@
 "use client";
 
-import { Bell, Search, User, LogOut, Settings } from "lucide-react";
+import { Bell, Search, User, LogOut, Settings, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 import {
   DropdownMenu,
@@ -18,6 +20,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 export function TopNav() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   const handleLogout = async () => {
     await logout();
@@ -25,7 +31,7 @@ export function TopNav() {
   };
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-border/50 bg-background/80 px-6 backdrop-blur-md">
+    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-border/40 bg-card/30 px-6 backdrop-blur-xl shadow-sm">
       <div className="flex flex-1 items-center gap-4">
         {/* Search Bar Placeholder */}
         <div className="relative w-full max-w-sm">
@@ -43,6 +49,17 @@ export function TopNav() {
           <Bell className="h-5 w-5" />
           <span className="absolute right-2 top-2 flex h-2 w-2 rounded-full bg-danger"></span>
         </Button>
+
+        {mounted && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button variant="ghost" className="relative h-8 w-8 rounded-full" />}>

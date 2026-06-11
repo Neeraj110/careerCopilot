@@ -2,31 +2,78 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, Users, Shield } from "lucide-react";
-import { SpotlightBackground } from "@/components/ui/aceternity/spotlight";
-import { BackgroundBeams } from "@/components/ui/aceternity/background-beams";
+import {
+  ArrowRight,
+  MessageSquare,
+  Cloud,
+  Hexagon,
+  Box,
+  Database,
+  Cpu,
+  Layers,
+  Globe,
+  Star,
+  CheckCircle2,
+  Mail,
+  FileText
+} from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const trustItems = [
-  { icon: Users, label: "10,000+ professionals" },
-  { icon: Shield, label: "Enterprise-grade security" },
-  { icon: Sparkles, label: "Powered by AI" },
+const orbitIcons = [
+  { icon: MessageSquare, color: "text-blue-500", top: "15%", left: "20%", delay: 0 },
+  { icon: Cloud, color: "text-orange-500", top: "25%", left: "75%", delay: 0.2 },
+  { icon: Hexagon, color: "text-green-500", top: "60%", left: "15%", delay: 0.4 },
+  { icon: Database, color: "text-purple-500", top: "70%", left: "80%", delay: 0.6 },
+  { icon: Cpu, color: "text-pink-500", top: "40%", left: "88%", delay: 0.8 },
+  { icon: Layers, color: "text-yellow-500", top: "80%", left: "30%", delay: 1.0 },
+  { icon: Globe, color: "text-indigo-500", top: "10%", left: "60%", delay: 1.2 },
 ];
 
 export function Hero() {
   return (
-    <SpotlightBackground className="relative flex min-h-[90vh] items-center justify-center overflow-hidden pt-16">
-      <BackgroundBeams />
+    <div className="relative min-h-[90vh] flex flex-col items-center justify-center overflow-hidden bg-background text-foreground pt-20">
 
-      <div className="relative z-10 mx-auto max-w-5xl px-6 py-24 text-center">
-        {/* Badge */}
+      {/* Orbital Background Rings */}
+      <div className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[1200px] aspect-square pointer-events-none">
+        <div className="absolute inset-0 m-auto w-[35%] h-[35%] rounded-full border border-border/60" />
+        <div className="absolute inset-0 m-auto w-[55%] h-[55%] rounded-full border border-border/40" />
+        <div className="absolute inset-0 m-auto w-[75%] h-[75%] rounded-full border border-border/20" />
+        <div className="absolute inset-0 m-auto w-[95%] h-[95%] rounded-full border border-border/10" />
+
+        {/* Orbiting Icons */}
+        {orbitIcons.map((item, i) => (
+          <motion.div
+            key={i}
+            className="absolute flex items-center justify-center w-10 h-10 rounded-full bg-card border border-border shadow-md"
+            style={{ top: item.top, left: item.left }}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: item.delay }}
+          >
+            <item.icon className={`w-5 h-5 ${item.color}`} />
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Main Content */}
+      <div className="relative z-10 flex flex-col items-center text-center px-4 mt-16">
+
+        {/* Trust Badge */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mb-8 inline-flex items-center gap-2 rounded-full border border-border bg-card/50 px-4 py-1.5 text-sm text-muted-foreground backdrop-blur-sm"
+          className="mb-8 flex items-center gap-4 text-sm font-medium text-muted-foreground bg-card/50 backdrop-blur-sm border border-border/50 px-4 py-2 rounded-full"
         >
-          <Sparkles className="h-3.5 w-3.5 text-primary" />
-          AI-Powered Career Growth Platform
+          <div className="flex items-center gap-1.5">
+            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold">G</span>
+            <span className="text-foreground">4.6</span> Google
+          </div>
+          <div className="w-px h-4 bg-border" />
+          <div className="flex items-center gap-1.5">
+            <Star className="w-4 h-4 text-green-500 fill-green-500" />
+            <span className="text-foreground">4.9</span> Trustpilot
+          </div>
         </motion.div>
 
         {/* Headline */}
@@ -34,11 +81,9 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="font-heading text-5xl font-bold leading-[1.1] tracking-tight text-foreground sm:text-6xl md:text-7xl"
+          className="max-w-3xl font-heading text-5xl font-bold tracking-tight text-foreground sm:text-6xl md:text-7xl mb-6"
         >
-          Navigate Your Career
-          <br />
-          <span className="gradient-text-primary">With AI Precision</span>
+          AI-powered tools to stay organized
         </motion.h1>
 
         {/* Subheadline */}
@@ -46,11 +91,10 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl"
+          className="max-w-xl text-lg text-muted-foreground mb-10"
         >
-          Analyze resumes, check ATS scores, match against job descriptions,
-          chat with documents, and generate personalized learning roadmaps —
-          all in one platform.
+          From small tasks to complex projects, manage everything
+          in one place and keep your team moving forward.
         </motion.p>
 
         {/* CTAs */}
@@ -58,118 +102,87 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
+          className="flex flex-col sm:flex-row items-center gap-4"
         >
           <Link
             href="/register"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-3.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary-hover hover:shadow-xl hover:shadow-primary/30"
+            className="inline-flex items-center justify-center h-12 px-8 rounded-full bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors shadow-lg shadow-foreground/10"
           >
-            Get Started Free
-            <ArrowRight className="h-4 w-4" />
+            Get started free
           </Link>
-          <a
-            href="#features"
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card/50 px-8 py-3.5 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:bg-card-hover"
+          <Link
+            href="#sales"
+            className="inline-flex items-center justify-center h-12 px-8 rounded-full border border-border bg-card hover:bg-muted font-medium transition-colors shadow-sm"
           >
-            See How It Works
-          </a>
+            Talk to sales team
+          </Link>
         </motion.div>
 
-        {/* Trust Indicators */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.5 }}
-          className="mt-16 flex flex-wrap items-center justify-center gap-8"
-        >
-          {trustItems.map((item) => (
-            <div
-              key={item.label}
-              className="flex items-center gap-2 text-sm text-muted-foreground"
-            >
-              <item.icon className="h-4 w-4 text-muted" />
-              {item.label}
-            </div>
-          ))}
-        </motion.div>
-
-        {/* Dashboard Preview */}
+        {/* Floating Mockups */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          className="relative mx-auto mt-16 max-w-4xl"
+          transition={{ duration: 0.8, delay: 0.5 }}
+          className="relative mt-20 w-full max-w-lg h-48 flex flex-col items-center pointer-events-none"
         >
-          <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl shadow-black/50">
-            {/* Mock browser chrome */}
-            <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-              <div className="h-3 w-3 rounded-full bg-danger/60" />
-              <div className="h-3 w-3 rounded-full bg-warning/60" />
-              <div className="h-3 w-3 rounded-full bg-success/60" />
-              <div className="ml-4 flex-1 rounded-md bg-background px-3 py-1 text-xs text-muted-foreground">
-                app.careerpilot.ai/dashboard
-              </div>
-            </div>
-            {/* Mock dashboard content */}
-            <div className="grid grid-cols-12 gap-0">
-              {/* Sidebar */}
-              <div className="col-span-3 border-r border-border bg-surface p-4">
-                <div className="space-y-3">
-                  {[
-                    "Dashboard",
-                    "Documents",
-                    "AI Chat",
-                    "ATS Checker",
-                    "Roadmaps",
-                  ].map((item, i) => (
-                    <div
-                      key={item}
-                      className={`rounded-lg px-3 py-2 text-xs ${i === 0 ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}
-                    >
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {/* Main */}
-              <div className="col-span-9 p-6">
-                <div className="mb-4 h-3 w-32 rounded bg-foreground/10" />
-                <div className="mb-6 h-2 w-48 rounded bg-foreground/5" />
-                <div className="grid grid-cols-3 gap-3">
-                  {[85, 92, 73].map((score, i) => (
-                    <div
-                      key={i}
-                      className="rounded-lg border border-border bg-background p-4"
-                    >
-                      <div className="mb-2 h-2 w-16 rounded bg-foreground/10" />
-                      <div className="text-2xl font-bold text-foreground">
-                        {score}
-                        <span className="text-xs text-muted-foreground">%</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 space-y-2">
-                  {[1, 2, 3].map((row) => (
-                    <div
-                      key={row}
-                      className="flex items-center gap-3 rounded-lg border border-border/50 bg-background p-3"
-                    >
-                      <div className="h-8 w-8 rounded bg-primary/10" />
-                      <div className="flex-1 space-y-1">
-                        <div className="h-2 w-24 rounded bg-foreground/10" />
-                        <div className="h-1.5 w-40 rounded bg-foreground/5" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+          {/* Card 1 */}
+          <div className="absolute top-0 z-10 w-full max-w-sm rounded-xl border border-border bg-card/80 backdrop-blur-md p-3 shadow-xl flex items-center gap-3">
+            <Avatar className="h-8 w-8 border border-border">
+              <AvatarFallback className="bg-blue-100 text-blue-600 text-xs font-bold">WC</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-medium leading-none"><span className="text-foreground">Wei Chen</span> joined to <span className="font-semibold text-foreground">Final Presentation</span></p>
+              <p className="text-xs text-muted-foreground mt-1">8 min ago • Orixcreative Dribbble</p>
             </div>
           </div>
-          {/* Glow underneath */}
-          <div className="absolute -bottom-20 left-1/2 h-40 w-3/4 -translate-x-1/2 bg-primary/5 blur-[80px]" />
+
+          {/* Card 2 */}
+          <div className="absolute top-12 z-20 w-full max-w-[340px] rounded-xl border border-border bg-card/90 backdrop-blur-md p-3 shadow-2xl flex items-center gap-3 translate-x-4">
+            <Avatar className="h-8 w-8 border border-border">
+              <AvatarFallback className="bg-green-100 text-green-600 text-xs font-bold">MJ</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-medium leading-none text-foreground">Matthew Johnson</p>
+              <p className="text-xs text-muted-foreground mt-1">Content Writer • @orixcreative</p>
+            </div>
+            <div className="h-6 w-6 rounded bg-muted flex items-center justify-center flex-col gap-[2px]">
+              <span className="block w-1 h-1 rounded-full bg-muted-foreground"></span>
+              <span className="block w-1 h-1 rounded-full bg-muted-foreground"></span>
+              <span className="block w-1 h-1 rounded-full bg-muted-foreground"></span>
+            </div>
+          </div>
+
+          {/* Card 3 */}
+          <div className="absolute top-24 z-30 w-full max-w-[300px] rounded-xl border border-border bg-card backdrop-blur-md p-3 shadow-2xl flex items-center gap-3 translate-x-12">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600 border border-red-200">
+              <Mail className="h-4 w-4" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-medium leading-none text-foreground">Terry Lipshutz</p>
+              <p className="text-xs text-muted-foreground mt-1 truncate">Approved the design of the iOS app...</p>
+            </div>
+          </div>
         </motion.div>
       </div>
-    </SpotlightBackground>
+
+      {/* Trusted By Footer */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1, delay: 0.8 }}
+        className="mt-auto pt-24 w-full z-10 px-4"
+      >
+        <p className="text-center text-sm font-medium text-muted-foreground mb-8">Trusted by 200,000+ users worldwide</p>
+        <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+          <div className="flex items-center gap-2 font-bold text-lg"><Globe className="w-5 h-5" /> Google</div>
+          <div className="flex items-center gap-2 font-bold text-lg"><Hexagon className="w-5 h-5" /> airbnb</div>
+          <div className="flex items-center gap-2 font-bold text-lg"><Database className="w-5 h-5" /> coinbase</div>
+          <div className="flex items-center gap-2 font-bold text-lg"><Box className="w-5 h-5" /> Notion</div>
+          <div className="flex items-center gap-2 font-bold text-lg uppercase tracking-wider text-base"><Layers className="w-5 h-5" /> Gumroad</div>
+          <div className="flex items-center gap-2 font-bold text-lg italic"><MessageSquare className="w-5 h-5" /> PayPal</div>
+        </div>
+      </motion.div>
+
+    </div>
   );
 }

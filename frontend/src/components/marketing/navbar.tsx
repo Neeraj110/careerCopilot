@@ -9,7 +9,10 @@ import {
   Menu,
   X,
   ArrowRight,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 
 const navLinks = [
   { label: "Features", href: "#features" },
@@ -20,6 +23,10 @@ const navLinks = [
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -65,6 +72,15 @@ export function Navbar() {
 
         {/* Desktop Actions */}
         <div className="hidden items-center gap-3 md:flex">
+          {mounted && (
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Toggle theme"
+            >
+              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
+          )}
           <Link
             href="/login"
             className="text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -115,6 +131,15 @@ export function Navbar() {
                 </a>
               ))}
               <div className="mt-2 flex flex-col gap-3 border-t border-border pt-4">
+                {mounted && (
+                  <button
+                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                    Toggle Theme
+                  </button>
+                )}
                 <Link
                   href="/login"
                   className="text-sm text-muted-foreground"

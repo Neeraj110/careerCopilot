@@ -7,6 +7,9 @@ import { TopNav } from "@/components/dashboard/top-nav";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 
+
+import { OrbitalBackground } from "@/components/ui/orbital-background";
+
 export default function DashboardLayout({
   children,
 }: {
@@ -36,13 +39,16 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <TopNav />
-        <main className="flex-1 overflow-y-auto bg-muted/20 p-6">
-          {children}
-        </main>
+    <div className="flex h-screen overflow-hidden bg-background relative text-foreground">
+      <OrbitalBackground />
+      <div className="flex z-10 w-full h-full relative">
+        <Sidebar />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <TopNav />
+          <main className="flex-1 overflow-y-auto p-6 relative">
+            {children}
+          </main>
+        </div>
       </div>
     </div>
   );

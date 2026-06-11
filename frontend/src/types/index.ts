@@ -124,9 +124,17 @@ export interface JDRecommendation {
 
 export interface ImproveResult {
   originalBullets: string[];
-  improvedBullets: string[];
+  improvedBullets: {
+    original: string;
+    improved: string;
+    reason: string;
+  }[];
   validationScore: number;
-  gaps: string[];
+  gaps: {
+    missing: string[];
+    partial: any[];
+    present: string[];
+  };
   retryCount: number;
 }
 
@@ -143,7 +151,8 @@ export interface RoadmapResource {
 
 export interface RoadmapWeek {
   week: number;
-  title: string;
+  title?: string;
+  focus?: string;
   topics: string[];
   resources: RoadmapResource[];
   project?: string;
@@ -155,7 +164,8 @@ export interface RoadmapResult {
     skill: string;
     level: string;
     goal: string;
-    weeks: RoadmapWeek[];
+    weeks?: RoadmapWeek[];
+    milestones?: RoadmapWeek[];
   };
   resources: RoadmapResource[];
 }
