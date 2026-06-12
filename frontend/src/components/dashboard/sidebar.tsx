@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-const sidebarItems = [
+export const sidebarItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Documents", href: "/dashboard/documents", icon: Files },
   { name: "AI Chat", href: "/dashboard/chat", icon: MessageSquare },
@@ -39,7 +39,7 @@ export function Sidebar() {
       initial={{ width: 260 }}
       animate={{ width: isCollapsed ? 80 : 260 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="relative z-20 flex h-screen flex-col border-r border-border/40 bg-card/40 backdrop-blur-xl shadow-xl shadow-black/20"
+      className="hidden md:flex relative z-20 h-screen flex-col border-r border-border/40 bg-card/40 backdrop-blur-xl shadow-xl shadow-black/20"
     >
       <div className="flex h-16 items-center justify-between px-4 border-b border-border/50">
         <Link href="/dashboard" className="flex items-center gap-2 overflow-hidden">

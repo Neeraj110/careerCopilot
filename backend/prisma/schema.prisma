@@ -1,9 +1,11 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+  extensions = [vector]
 }
 
 enum DocType {
@@ -57,6 +59,7 @@ model Chunk {
   document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   content    String
   metadata   Json?
+  embedding  Unsupported("vector(1024)")?
   createdAt  DateTime @default(now())
 }
 

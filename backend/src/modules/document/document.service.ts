@@ -1,6 +1,5 @@
 /// <reference types="multer" />
 import { prisma } from "../../infrastructure/prisma";
-import { getCollection } from "../../infrastructure/chroma";
 import { embedTexts } from "../../infrastructure/embeddings";
 import {
   uploadToCloudinary,
@@ -123,31 +122,19 @@ const processDocument = async (
     // 3. Generate embeddings for all chunks
     const vectors = await embedTexts(chunks);
 
-    // 4. Store chunks in Postgres
-    const chunkRecords = await Promise.all(
-      chunks.map((content, index) =>
-        prisma.chunk.create({
-          data: {
-            documentId,
-            content,
-            metadata: { chunkIndex: index, totalChunks: chunks.length },
-          },
-        }),
-      ),
+    // 4. Store chunks and vectors in Postgres
+    await Promise.all(
+      chunks.map(async (content, index) => {
+        const id = uuidv4();
+        const vectorStr = `[${vectors[index].join(",")}]`;
+        const metadataStr = JSON.stringify({ chunkIndex: index, totalChunks: chunks.length });
+        
+        await prisma.$executeRaw`
+          INSERT INTO "Chunk" (id, "documentId", content, metadata, embedding, "createdAt")
+          VALUES (${id}, ${documentId}, ${content}, ${metadataStr}::jsonb, ${vectorStr}::vector, NOW())
+        `;
+      }),
     );
-
-    // 5. Store vectors in ChromaDB
-    const collection = await getCollection();
-    await collection.add({
-      ids: chunkRecords.map((c: { id: string }) => c.id),
-      embeddings: vectors,
-      documents: chunks,
-      metadatas: chunkRecords.map((c: { id: string }, i: number) => ({
-        documentId,
-        chunkId: c.id,
-        chunkIndex: i,
-      })),
-    });
 
     // 6. Mark as COMPLETED
     await prisma.document.update({
@@ -229,17 +216,7 @@ export const deleteDocument = async (userId: string, documentId: string) => {
     throw new AppError("Document not found", 404);
   }
 
-  // 1. Remove vectors from ChromaDB
-  if (document.chunks.length > 0) {
-    try {
-      const collection = await getCollection();
-      await collection.delete({
-        ids: document.chunks.map((c: { id: string }) => c.id),
-      });
-    } catch (err) {
-      console.error("[ChromaDB Delete Error]:", err);
-    }
-  }
+  // Vectors are stored in Postgres Chunk table, which cascades on Document delete.
 
   // 2. Remove file from Cloudinary
   try {

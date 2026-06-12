@@ -114,7 +114,7 @@ export default function ResumeAnalyzerPage() {
       {result && !isAnalyzing && (
         <div className="grid gap-6 md:grid-cols-3">
           {/* Main Score Card */}
-          <Card className="md:col-span-1 border-border/40 bg-card/30 backdrop-blur-xl flex flex-col justify-center items-center py-8 h-fit sticky top-6 max-h-[calc(100vh-80px)] overflow-y-auto shadow-xl shadow-black/20 hover:border-primary/30 transition-all duration-300">
+          <Card className="md:col-span-1 border-border/40 bg-card/30 backdrop-blur-xl flex flex-col justify-center items-center py-8 h-fit md:sticky md:top-6 md:max-h-[calc(100vh-80px)] md:overflow-y-auto shadow-xl shadow-black/20 hover:border-primary/30 transition-all duration-300">
 
             <div className=" flex flex-col items-center justify-center">
               <span className="text-4xl font-bold">{result.atsScore}</span>
@@ -132,7 +132,7 @@ export default function ResumeAnalyzerPage() {
           </Card>
 
           {/* Detailed Breakdown */}
-          <div className="md:col-span-2 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto pr-2 pb-4">
+          <div className="md:col-span-2 space-y-6 md:max-h-[calc(100vh-200px)] md:overflow-y-auto md:pr-2 pb-4">
             <Card className="border-border/40 bg-card/30 backdrop-blur-xl shadow-xl shadow-black/20 hover:border-primary/30 transition-all duration-300">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg">Analysis Breakdown</CardTitle>

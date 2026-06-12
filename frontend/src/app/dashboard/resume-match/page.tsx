@@ -135,7 +135,7 @@ export default function ResumeMatchPage() {
 
             <div className="flex flex-col sm:flex-row gap-3 w-full">
               <Button 
-                className="flex-1" 
+                className="flex-1 py-5" 
                 onClick={handleAnalyze} 
                 disabled={!jd || !selectedDocId || isAnalyzing || isImproving}
               >
@@ -143,7 +143,7 @@ export default function ResumeMatchPage() {
                 {isAnalyzing ? "Analyzing..." : "Calculate Match Score"}
               </Button>
               <Button 
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white border-transparent"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white border-transparent py-5"
                 onClick={handleImprove} 
                 disabled={!jd || !selectedDocId || isAnalyzing || isImproving}
               >

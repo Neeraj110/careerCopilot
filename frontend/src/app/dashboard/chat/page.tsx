@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, Bot, User, FileText, ChevronDown, Plus, Loader2, Trash2, Check, Copy } from "lucide-react";
+import { Send, Bot, User, FileText, ChevronDown, Plus, Loader2, Trash2, Check, Copy, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import {
   Dialog,
   DialogContent,
@@ -73,6 +74,7 @@ export default function ChatPage() {
 
   const [isNewChatDialogOpen, setIsNewChatDialogOpen] = useState(false);
   const [newChatTitle, setNewChatTitle] = useState("");
+  const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -271,7 +273,59 @@ export default function ChatPage() {
       <div className="flex flex-1 flex-col overflow-hidden rounded-lg border border-border/40 bg-card/30 backdrop-blur-xl shadow-xl shadow-black/20">
         {/* Chat Header */}
         <div className="flex items-center justify-between border-b border-border/50 p-3">
-          <h2 className="font-semibold">{activeChat?.title || "New Chat"}</h2>
+          <div className="flex items-center gap-2">
+            <Sheet open={isMobileChatOpen} onOpenChange={setIsMobileChatOpen}>
+              <SheetTrigger render={<Button variant="ghost" size="icon" className="lg:hidden" />}>
+                <Menu className="h-5 w-5" />
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[280px] p-0 flex flex-col">
+                <SheetTitle className="sr-only">Chat History</SheetTitle>
+                <div className="p-4 border-b border-border/50 mt-4">
+                  <Button onClick={() => { setIsNewChatDialogOpen(true); setNewChatTitle(""); setIsMobileChatOpen(false); }} className="w-full flex items-center gap-2" variant="outline">
+                    <Plus className="h-4 w-4" /> New Chat
+                  </Button>
+                </div>
+                <div className="flex-1 min-h-0">
+                  <ScrollArea className="h-full p-3">
+                    {isLoadingChats ? (
+                      <div className="flex justify-center p-4">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : chats.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center p-4">No chats yet.</p>
+                    ) : (
+                      <div className="space-y-2 text-sm ">
+                        {chats.map((chat) => (
+                          <div
+                            key={chat.id}
+                            className={`group flex items-center justify-between rounded-md px-3 py-2 cursor-pointer transition-colors ${activeChatId === chat.id
+                              ? "bg-muted font-medium text-foreground"
+                              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                              }`}
+                          >
+                            <span className="truncate flex-1" onClick={() => { setActiveChatId(chat.id); setIsMobileChatOpen(false); }}>
+                              {chat.title || "New Chat"}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteChat(chat.id);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive hover:text-destructive/80" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </div>
+              </SheetContent>
+            </Sheet>
+            <h2 className="font-semibold truncate max-w-[200px]">{activeChat?.title || "New Chat"}</h2>
+          </div>
           <DropdownMenu>
             <DropdownMenuTrigger className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-transparent px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 max-w-[250px] cursor-pointer">
               <FileText className="h-4 w-4 shrink-0" />
