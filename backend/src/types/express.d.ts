@@ -1,7 +1,14 @@
-import "express";
+export {};
 
-declare module "express" {
-  interface Request {
-    user?: { id: string; iat?: number; exp?: number };
+declare global {
+  namespace Express {
+    interface User {
+      id: string;
+      iat?: number;
+      exp?: number;
+    }
+    interface Request {
+      user?: User;
+    }
   }
 }

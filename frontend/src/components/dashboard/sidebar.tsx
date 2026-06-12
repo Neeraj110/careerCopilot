@@ -12,7 +12,6 @@ import {
   CheckCircle,
   FileCheck2,
   Map,
-  Settings,
   ChevronLeft,
   ChevronRight,
   Sparkles,
@@ -29,7 +28,6 @@ const sidebarItems = [
   { name: "Resume Analyzer", href: "/dashboard/resume-analyzer", icon: FileSearch },
   { name: "Resume Match", href: "/dashboard/resume-match", icon: FileCheck2 },
   { name: "Roadmaps", href: "/dashboard/roadmaps", icon: Map },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 export function Sidebar() {

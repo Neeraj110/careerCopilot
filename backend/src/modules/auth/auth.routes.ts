@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as authController from './auth.controller';
 import { requireAuth } from '../../middlewares/auth';
+import passport from 'passport';
 
 const router = Router();
 
@@ -100,5 +101,27 @@ router.post('/logout', requireAuth, authController.logout);
  *         description: Unauthorized
  */
 router.get('/profile', requireAuth, authController.getUserProfile);
+
+/**
+ * @swagger
+ * /auth/google:
+ *   get:
+ *     summary: Initiate Google OAuth login
+ *     tags: [Auth]
+ */
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+/**
+ * @swagger
+ * /auth/google/callback:
+ *   get:
+ *     summary: Google OAuth callback URL
+ *     tags: [Auth]
+ */
+router.get(
+  '/google/callback',
+  passport.authenticate('google', { session: false, failureRedirect: '/login' }),
+  authController.googleCallback
+);
 
 export default router;

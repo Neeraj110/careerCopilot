@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 
 export class AppError extends Error {
   public statusCode: number;
@@ -10,11 +10,11 @@ export class AppError extends Error {
   }
 }
 
-export const errorHandler = (
-  err: any,
-  req: Request,
-  res: Response,
-  next: NextFunction
+export const errorHandler: ErrorRequestHandler = (
+  err,
+  req,
+  res,
+  next
 ) => {
   console.error('[Error]:', err);
 

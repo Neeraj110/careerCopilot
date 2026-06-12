@@ -83,7 +83,7 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="max-w-3xl font-heading text-5xl font-bold tracking-tight text-foreground sm:text-6xl md:text-7xl mb-6"
         >
-          AI-powered tools to stay organized
+          AI-Powered Resume Analyzer & Improver
         </motion.h1>
 
         {/* Subheadline */}
@@ -93,8 +93,7 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="max-w-xl text-lg text-muted-foreground mb-10"
         >
-          From small tasks to complex projects, manage everything
-          in one place and keep your team moving forward.
+          Upload your resume and get instant, AI-driven feedback to optimize your profile, beat the ATS, and land your dream job.
         </motion.p>
 
         {/* CTAs */}
@@ -105,16 +104,16 @@ export function Hero() {
           className="flex flex-col sm:flex-row items-center gap-4"
         >
           <Link
-            href="/register"
+            href="/dashboard/resume-analyzer"
             className="inline-flex items-center justify-center h-12 px-8 rounded-full bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors shadow-lg shadow-foreground/10"
           >
-            Get started free
+            Analyze Resume Now
           </Link>
           <Link
-            href="#sales"
+            href="/register"
             className="inline-flex items-center justify-center h-12 px-8 rounded-full border border-border bg-card hover:bg-muted font-medium transition-colors shadow-sm"
           >
-            Talk to sales team
+            Create an Account
           </Link>
         </motion.div>
 
@@ -128,22 +127,22 @@ export function Hero() {
           {/* Card 1 */}
           <div className="absolute top-0 z-10 w-full max-w-sm rounded-xl border border-border bg-card/80 backdrop-blur-md p-3 shadow-xl flex items-center gap-3">
             <Avatar className="h-8 w-8 border border-border">
-              <AvatarFallback className="bg-blue-100 text-blue-600 text-xs font-bold">WC</AvatarFallback>
+              <AvatarFallback className="bg-blue-100 text-blue-600 text-xs font-bold">95</AvatarFallback>
             </Avatar>
             <div className="flex-1 text-left">
-              <p className="text-sm font-medium leading-none"><span className="text-foreground">Wei Chen</span> joined to <span className="font-semibold text-foreground">Final Presentation</span></p>
-              <p className="text-xs text-muted-foreground mt-1">8 min ago • Orixcreative Dribbble</p>
+              <p className="text-sm font-medium leading-none"><span className="text-foreground">Resume Score</span> improved to <span className="font-semibold text-foreground">95/100</span></p>
+              <p className="text-xs text-muted-foreground mt-1">2 mins ago • ATS Optimization</p>
             </div>
           </div>
 
           {/* Card 2 */}
           <div className="absolute top-12 z-20 w-full max-w-[340px] rounded-xl border border-border bg-card/90 backdrop-blur-md p-3 shadow-2xl flex items-center gap-3 translate-x-4">
             <Avatar className="h-8 w-8 border border-border">
-              <AvatarFallback className="bg-green-100 text-green-600 text-xs font-bold">MJ</AvatarFallback>
+              <AvatarFallback className="bg-green-100 text-green-600 text-xs font-bold">SJ</AvatarFallback>
             </Avatar>
             <div className="flex-1 text-left">
-              <p className="text-sm font-medium leading-none text-foreground">Matthew Johnson</p>
-              <p className="text-xs text-muted-foreground mt-1">Content Writer • @orixcreative</p>
+              <p className="text-sm font-medium leading-none text-foreground">Sarah Jenkins</p>
+              <p className="text-xs text-muted-foreground mt-1">Software Engineer • Resume Analyzed</p>
             </div>
             <div className="h-6 w-6 rounded bg-muted flex items-center justify-center flex-col gap-[2px]">
               <span className="block w-1 h-1 rounded-full bg-muted-foreground"></span>
@@ -154,12 +153,12 @@ export function Hero() {
 
           {/* Card 3 */}
           <div className="absolute top-24 z-30 w-full max-w-[300px] rounded-xl border border-border bg-card backdrop-blur-md p-3 shadow-2xl flex items-center gap-3 translate-x-12">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600 border border-red-200">
-              <Mail className="h-4 w-4" />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 border border-indigo-200">
+              <FileText className="h-4 w-4" />
             </div>
             <div className="flex-1 text-left">
-              <p className="text-sm font-medium leading-none text-foreground">Terry Lipshutz</p>
-              <p className="text-xs text-muted-foreground mt-1 truncate">Approved the design of the iOS app...</p>
+              <p className="text-sm font-medium leading-none text-foreground">Actionable Feedback</p>
+              <p className="text-xs text-muted-foreground mt-1 truncate">Added 3 strong action verbs to experience...</p>
             </div>
           </div>
         </motion.div>
@@ -173,14 +172,14 @@ export function Hero() {
         className="mt-auto pt-24 w-full z-10 px-4"
       >
         <p className="text-center text-sm font-medium text-muted-foreground mb-8">Trusted by 200,000+ users worldwide</p>
-        <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+        {/* <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
           <div className="flex items-center gap-2 font-bold text-lg"><Globe className="w-5 h-5" /> Google</div>
           <div className="flex items-center gap-2 font-bold text-lg"><Hexagon className="w-5 h-5" /> airbnb</div>
           <div className="flex items-center gap-2 font-bold text-lg"><Database className="w-5 h-5" /> coinbase</div>
           <div className="flex items-center gap-2 font-bold text-lg"><Box className="w-5 h-5" /> Notion</div>
           <div className="flex items-center gap-2 font-bold text-lg uppercase tracking-wider text-base"><Layers className="w-5 h-5" /> Gumroad</div>
           <div className="flex items-center gap-2 font-bold text-lg italic"><MessageSquare className="w-5 h-5" /> PayPal</div>
-        </div>
+        </div> */}
       </motion.div>
 
     </div>

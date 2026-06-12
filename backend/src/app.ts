@@ -11,7 +11,8 @@ import chatRoutes from "./modules/chat/chat.routes";
 import resumeRoutes from "./modules/resume/resume.route";
 import roadmapRoutes from "./modules/roadmap/roadmap.routes";
 import cookieParser from "cookie-parser";
-
+import passport from "passport";
+import { configurePassport } from "./config/passport";
 const app = express();
 
 // Security middlewares
@@ -46,6 +47,10 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Initialize Passport
+configurePassport();
+app.use(passport.initialize());
 
 // Logging
 app.use(morgan("dev"));
