@@ -19,27 +19,11 @@ const app = express();
 app.use(helmet());
 
 // CORS setup
-// app.use(
-//   cors({
-//     origin: process.env.FRONTEND_URL,
-//     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-//     credentials: true,
-//   }),
-// );
-// app.ts
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: process.env.FRONTEND_URL,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "Cache-Control",
-      "Accept",
-      "X-Accel-Buffering",
-    ],
-    exposedHeaders: ["Content-Type"],
   }),
 );
 
