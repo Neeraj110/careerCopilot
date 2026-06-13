@@ -1,6 +1,7 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { prisma } from "../infrastructure/prisma";
+import { config } from "./index";
 
 // The passport configuration will happen inside an init function
 export const configurePassport = () => {
@@ -9,7 +10,7 @@ export const configurePassport = () => {
       {
         clientID: process.env.GOOGLE_CLIENT_ID || "",
         clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-        callbackURL: `${process.env.BACKEND_URL}/api/v1/auth/google/callback`,
+        callbackURL: `${config.backendUrl}/api/v1/auth/google/callback`,
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
