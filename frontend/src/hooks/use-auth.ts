@@ -74,7 +74,11 @@ export const useAuth = create<AuthState>((set) => ({
     try {
       set({ isCheckingAuth: true });
       const res = await authApi.getProfile();
-      set({ user: res.data as unknown as User, isAuthenticated: true, isCheckingAuth: false });
+      set({
+        user: res.data as unknown as User,
+        isAuthenticated: true,
+        isCheckingAuth: false,
+      });
     } catch {
       set({ user: null, isAuthenticated: false, isCheckingAuth: false });
     }
