@@ -12,8 +12,8 @@ const sendAuthResponse = (
 ) => {
   res.cookie("token", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: true, 
+    sameSite: "none", 
     maxAge: 24 * 60 * 60 * 1000, // 1 day
   });
   res.status(statusCode).json({ status: "success", data: { user } });
@@ -78,8 +78,8 @@ export const googleCallback = catchAsync(async (
 
   res.cookie("token", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: true, 
+    sameSite: "none", 
     maxAge: 24 * 60 * 60 * 1000, // 1 day
   });
 
