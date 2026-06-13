@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { config } from "../../config";
 import * as authService from "./auth.service";
 import { registerSchema, loginSchema } from "./auth.schema";
 import { catchAsync } from "../../utils/catchAsync";
@@ -72,8 +73,8 @@ export const googleCallback = catchAsync(async (
   const user = req.user as any;
   const token = jwt.sign(
     { id: user.id },
-    process.env.JWT_SECRET || "default_secret",
-    { expiresIn: "1d" }
+    config.jwtSecret,
+    { expiresIn: config.jwtExpiresIn as any }
   );
 
   res.cookie("token", token, {
