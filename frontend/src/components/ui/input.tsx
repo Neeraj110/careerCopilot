@@ -1,20 +1,47 @@
-import * as React from "react"
-import { Input as InputPrimitive } from "@base-ui/react/input"
+import { forwardRef } from "react";
+import { cn } from "@/lib/utils";
 
-import { cn } from "@/lib/utils"
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
-  return (
-    <InputPrimitive
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type = "text", ...props }, ref) => (
+    <input
+      ref={ref}
       type={type}
-      data-slot="input"
       className={cn(
-        "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
+        "h-10 w-full rounded-full border border-border bg-surface px-4 text-sm text-ink placeholder:text-ink-muted outline-none transition-colors focus:border-accent-v2/50 focus:ring-2 focus:ring-accent-v2/15 disabled:opacity-50",
         className
       )}
       {...props}
     />
   )
+);
+Input.displayName = "Input";
+
+export interface SearchInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  leftIcon?: React.ReactNode;
+  rightSlot?: React.ReactNode;
 }
 
-export { Input }
+export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
+  ({ className, leftIcon, rightSlot, ...props }, ref) => (
+    <div
+      className={cn(
+        "group flex items-center gap-3 h-11 rounded-full bg-surface border border-border pl-5 pr-1.5 shadow-card transition-shadow hover:shadow-hover focus-within:ring-2 focus-within:ring-accent-v2/20",
+        className
+      )}
+    >
+      {leftIcon && (
+        <span className="text-ink-muted shrink-0">{leftIcon}</span>
+      )}
+      <input
+        ref={ref}
+        type="text"
+        className="flex-1 bg-transparent text-sm text-ink placeholder:text-ink-muted outline-none"
+        {...props}
+      />
+      {rightSlot}
+    </div>
+  )
+);
+SearchInput.displayName = "SearchInput";

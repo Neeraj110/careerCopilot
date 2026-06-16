@@ -32,19 +32,22 @@ const orbitIcons = [
 export function Hero() {
   return (
     <div className="relative min-h-[90vh] flex flex-col items-center justify-center overflow-hidden bg-background text-foreground pt-20">
+      
+      {/* Radiant blue background glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Orbital Background Rings */}
       <div className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[1200px] aspect-square pointer-events-none">
-        <div className="absolute inset-0 m-auto w-[35%] h-[35%] rounded-full border border-border/60" />
-        <div className="absolute inset-0 m-auto w-[55%] h-[55%] rounded-full border border-border/40" />
-        <div className="absolute inset-0 m-auto w-[75%] h-[75%] rounded-full border border-border/20" />
-        <div className="absolute inset-0 m-auto w-[95%] h-[95%] rounded-full border border-border/10" />
+        <div className="absolute inset-0 m-auto w-[35%] h-[35%] rounded-full border border-blue-500/10" />
+        <div className="absolute inset-0 m-auto w-[55%] h-[55%] rounded-full border border-blue-500/10" />
+        <div className="absolute inset-0 m-auto w-[75%] h-[75%] rounded-full border border-blue-500/5" />
+        <div className="absolute inset-0 m-auto w-[95%] h-[95%] rounded-full border border-blue-500/5" />
 
         {/* Orbiting Icons */}
         {orbitIcons.map((item, i) => (
           <motion.div
             key={i}
-            className="absolute flex items-center justify-center w-10 h-10 rounded-full bg-card border border-border shadow-md"
+            className="absolute flex items-center justify-center w-10 h-10 rounded-full bg-card border border-blue-500/10 shadow-md"
             style={{ top: item.top, left: item.left }}
             initial={{ opacity: 0, scale: 0 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -63,13 +66,13 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mb-8 flex items-center gap-4 text-sm font-medium text-muted-foreground bg-card/50 backdrop-blur-sm border border-border/50 px-4 py-2 rounded-full"
+          className="mb-8 flex items-center gap-4 text-sm font-medium text-muted-foreground bg-card/50 backdrop-blur-sm border border-blue-500/15 px-4 py-2 rounded-full"
         >
           <div className="flex items-center gap-1.5">
             <span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold">G</span>
             <span className="text-foreground">4.6</span> Google
           </div>
-          <div className="w-px h-4 bg-border" />
+          <div className="w-px h-4 bg-blue-500/20" />
           <div className="flex items-center gap-1.5">
             <Star className="w-4 h-4 text-green-500 fill-green-500" />
             <span className="text-foreground">4.9</span> Trustpilot
@@ -104,14 +107,14 @@ export function Hero() {
           className="flex flex-col sm:flex-row items-center gap-4"
         >
           <Link
-            href="/dashboard/resume-analyzer"
-            className="inline-flex items-center justify-center h-12 px-8 rounded-full bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors shadow-lg shadow-foreground/10"
+            href="/dashboard/resumes"
+            className="inline-flex items-center justify-center h-12 px-8 rounded-full bg-blue-600 text-white font-medium hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/25"
           >
             Analyze Resume Now
           </Link>
           <Link
             href="/register"
-            className="inline-flex items-center justify-center h-12 px-8 rounded-full border border-border bg-card hover:bg-muted font-medium transition-colors shadow-sm"
+            className="inline-flex items-center justify-center h-12 px-8 rounded-full border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 text-foreground font-medium transition-colors shadow-sm"
           >
             Create an Account
           </Link>

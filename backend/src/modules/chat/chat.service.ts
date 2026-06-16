@@ -19,12 +19,14 @@ const ragModel = new ChatMistralAI({
   apiKey: config.mistralApiKey,
   model: "mistral-large-latest",
   temperature: 0.3,
+  maxRetries: 2,
 });
 
 const searchGroundedModel = new ChatMistralAI({
   apiKey: config.mistralApiKey,
   model: "mistral-large-latest",
   temperature: 1,
+  maxRetries: 2,
 });
 
 

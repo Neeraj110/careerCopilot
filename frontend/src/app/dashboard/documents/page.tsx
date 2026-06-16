@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { UploadCloud, FileText, MoreVertical, Search, Filter, Loader2 } from "lucide-react";
 import { 
   Card, 
@@ -9,6 +9,7 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,30 +21,17 @@ import {
   DropdownMenuTrigger,
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
-import { documentsApi } from "@/lib/api/documents";
+import { useDocumentsList, useUploadDocument, useDeleteDocument } from "@/hooks/use-documents";
 import type { Document } from "@/types";
 import { motion } from "framer-motion";
 
 export default function DocumentsPage() {
   const [isDragging, setIsDragging] = useState(false);
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isUploading, setIsUploading] = useState(false);
+  const { data: documents = [], isLoading } = useDocumentsList();
+  const uploadDoc = useUploadDocument();
+  const deleteDoc = useDeleteDocument();
+  const isUploading = uploadDoc.isPending;
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const fetchDocs = async () => {
-      try {
-        const res = await documentsApi.getAll();
-        setDocuments(res.data || []);
-      } catch (err) {
-        console.error("Failed to fetch documents", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchDocs();
-  }, []);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -74,37 +62,42 @@ export default function DocumentsPage() {
   };
 
   const handleFile = async (file: File) => {
-    setIsUploading(true);
     try {
-      await documentsApi.upload(file, file.name);
-      const res = await documentsApi.getAll();
-      setDocuments(res.data || []);
+      let fileToUpload = file;
+
+      // ─── Frontend Optimization & Compression ───
+      if (file.type === "text/plain") {
+        const text = await file.text();
+        const optimizedText = text
+          .replace(/\r\n/g, "\n")
+          .replace(/\n{3,}/g, "\n\n") // Max 2 consecutive linebreaks
+          .replace(/[ \t]+/g, " ")     // Max 1 consecutive space/tab
+          .trim();
+        
+        fileToUpload = new File([optimizedText], file.name, { type: "text/plain" });
+        console.log(`[Compression] Optimized plain-text file from ${file.size} to ${fileToUpload.size} bytes`);
+      } else if (file.size > 5 * 1024 * 1024) {
+        console.warn(`[Optimization] Warning: Large file (${(file.size / 1024 / 1024).toFixed(2)}MB) uploaded. Processing might take a few moments.`);
+      }
+
+      await uploadDoc.mutateAsync({ file: fileToUpload, title: file.name });
     } catch (err) {
       console.error("Failed to upload document", err);
-    } finally {
-      setIsUploading(false);
     }
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="flex flex-col gap-6"
-    >
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-heading font-bold tracking-tight">Documents</h1>
-        <p className="text-muted-foreground">
-          Manage your uploaded resumes, cover letters, and portfolios.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Documents"
+        description="Manage your uploaded resumes, cover letters, and portfolios."
+      />
 
-      <Card className="border-border/40 bg-card/30 backdrop-blur-xl border-dashed shadow-xl shadow-black/20 hover:border-primary/50 transition-all duration-300">
+      <Card className="border-border bg-surface border-dashed shadow-card hover:border-accent-v2 transition-all duration-300">
         <CardContent className="p-0">
           <div 
-            className={`flex flex-col items-center justify-center p-12 transition-colors cursor-pointer ${
-              isDragging ? "bg-primary/5" : "hover:bg-muted/50"
+            className={`flex flex-col items-center justify-center p-12 transition-colors cursor-pointer rounded-xl ${
+              isDragging ? "bg-accent-soft/20" : "hover:bg-surface-2"
             }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -120,13 +113,13 @@ export default function DocumentsPage() {
             />
             {isUploading ? (
               <div className="flex flex-col items-center justify-center">
-                <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
+                <Loader2 className="h-12 w-12 text-accent-v2 animate-spin mb-4" />
                 <h3 className="text-lg font-medium">Uploading document...</h3>
                 <p className="text-sm text-muted-foreground mt-1">Please wait while we process your file.</p>
               </div>
             ) : (
               <>
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent-soft/20 text-accent-v2 mb-4">
                   <UploadCloud className="h-8 w-8" />
                 </div>
                 <h3 className="text-lg font-medium">Click to upload or drag and drop</h3>
@@ -140,7 +133,7 @@ export default function DocumentsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-border/40 bg-card/30 backdrop-blur-xl shadow-xl shadow-black/20 hover:border-primary/30 transition-all duration-300">
+      <Card className="border-border bg-surface shadow-card transition-all duration-300">
         <CardHeader className="flex flex-row items-center justify-between pb-4">
           <div>
             <CardTitle>Your Files</CardTitle>
@@ -152,7 +145,7 @@ export default function DocumentsPage() {
               <Input
                 type="search"
                 placeholder="Search files..."
-                className="w-[200px] pl-9 lg:w-[300px] bg-card/50 border-border/40 focus:border-primary"
+                className="w-[200px] pl-9 lg:w-[300px] bg-surface-2 border-border focus:border-accent-v2"
               />
             </div>
             <Button variant="outline" size="icon">
@@ -161,9 +154,9 @@ export default function DocumentsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border border-border/40 bg-muted/10 backdrop-blur-md">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/20 text-muted-foreground">
+          <div className="rounded-md border border-border bg-surface-2/30 backdrop-blur-md overflow-x-auto w-full">
+            <table className="w-full min-w-[600px] text-sm">
+              <thead className="bg-surface-2 text-ink-muted">
                 <tr>
                   <th className="h-10 px-4 text-left font-medium">Name</th>
                   <th className="h-10 px-4 text-left font-medium">Date</th>
@@ -187,10 +180,10 @@ export default function DocumentsPage() {
                   </tr>
                 ) : (
                   documents.map((doc) => (
-                    <tr key={doc.id} className="border-t border-border/50 transition-colors hover:bg-muted/50">
+                    <tr key={doc.id} className="border-t border-border transition-colors hover:bg-surface">
                       <td className="p-4 align-middle">
                         <div className="flex items-center gap-3">
-                          <FileText className="h-4 w-4 text-primary" />
+                          <FileText className="h-4 w-4 text-accent-v2" />
                           <span className="font-medium">{doc.title}</span>
                         </div>
                       </td>
@@ -209,7 +202,7 @@ export default function DocumentsPage() {
                       </td>
                       <td className="p-4 align-middle text-right">
                         <DropdownMenu>
-                          <DropdownMenuTrigger className="inline-flex h-8 w-8 items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
+                          <DropdownMenuTrigger className="inline-flex h-8 w-8 items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-bg transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-v2 disabled:pointer-events-none disabled:opacity-50">
                               <span className="sr-only">Open menu</span>
                               <MoreVertical className="h-4 w-4" />
                           </DropdownMenuTrigger>
@@ -220,7 +213,17 @@ export default function DocumentsPage() {
                               <DropdownMenuItem>Download</DropdownMenuItem>
                             </DropdownMenuGroup>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-danger">Delete file</DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                if (confirm(`Are you sure you want to delete ${doc.title}?`)) {
+                                  deleteDoc.mutate(doc.id);
+                                }
+                              }}
+                              className="text-danger cursor-pointer font-medium"
+                              disabled={deleteDoc.isPending}
+                            >
+                              Delete file
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>
@@ -232,6 +235,6 @@ export default function DocumentsPage() {
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   );
 }

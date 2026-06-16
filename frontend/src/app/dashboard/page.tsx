@@ -1,171 +1,237 @@
 "use client";
 
-import { useAuth } from "@/hooks/use-auth";
-import { useEffect, useState } from "react";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { 
-  Files, 
-  MessageSquare, 
-  CheckCircle, 
-  Map,
-  ArrowRight,
-  TrendingUp,
-  Loader2
+import { useRouter } from "next/navigation";
+import {
+  Gauge,
+  Layers,
+  Lightbulb,
+  KeyRound,
+  UploadCloud,
+  Sparkles,
 } from "lucide-react";
-import Link from "next/link";
-import { motion } from "framer-motion";
-import { documentsApi } from "@/lib/api/documents";
-import { chatApi } from "@/lib/api/chat";
-import type { Document, Chat } from "@/types";
+import { StatCard } from "@/components/dashboard/stat-card";
+import { ProfileCard } from "@/components/dashboard/profile-card";
+import { VersionStack } from "@/components/dashboard/version-stack";
+import { ActivityFeed } from "@/components/dashboard/activity-feed";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { useAuth } from "@/hooks/use-auth";
+import { useDashboardV2 } from "@/hooks/use-dashboard-v2";
+import dynamic from "next/dynamic";
 
-export default function DashboardHomePage() {
+const ScoreEvolutionChart = dynamic(
+  () => import("@/components/dashboard/score-evolution-chart").then((m) => m.ScoreEvolutionChart),
+  { ssr: false, loading: () => <Skeleton className="h-[300px] w-full rounded-3xl" /> }
+);
+
+const AtsGauge = dynamic(
+  () => import("@/components/dashboard/ats-gauge").then((m) => m.AtsGauge),
+  { ssr: false, loading: () => <Skeleton className="h-[300px] w-full rounded-3xl" /> }
+);
+
+export default function Dashboard() {
   const { user } = useAuth();
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+  const { data, isLoading, error } = useDashboardV2();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [docsRes, chatsRes] = await Promise.all([
-          documentsApi.getAll(),
-          chatApi.getAll()
-        ]);
-        setDocuments(docsRes.data || []);
-        setChats(chatsRes.data || []);
-      } catch (error) {
-        console.error("Failed to fetch dashboard data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  if (isLoading) return <DashboardSkeleton />;
 
-    fetchData();
-  }, []);
+  if (error) {
+    return (
+      <EmptyState
+        icon={Gauge}
+        title="Couldn't load your dashboard"
+        description={(error as Error).message}
+      />
+    );
+  }
 
-  const stats = [
-    { name: "Documents Analyzed", value: documents.length.toString(), icon: Files, trend: "Total uploaded" },
-    { name: "AI Chats", value: chats.length.toString(), icon: MessageSquare, trend: "Total conversations" },
-    { name: "Avg ATS Score", value: "N/A", icon: CheckCircle, trend: "Not tracked yet" },
-    { name: "Roadmap Progress", value: "N/A", icon: Map, trend: "Not tracked yet" },
+  const { totals, latestResume, scoreSeries, versionStack, kpi, activity } =
+    data || {};
+
+  if (!totals?.resumes) {
+    return (
+      <EmptyState
+        icon={UploadCloud}
+        title="Welcome — let's roast your resume"
+        description="Upload a PDF to get an instant ATS score, fixable issues, your strengths, and AI-rewritten bullets."
+        action={
+          <Button variant="accent" size="lg" onClick={() => router.push("/dashboard/documents")}>
+            Upload your first resume
+          </Button>
+        }
+      />
+    );
+  }
+
+  const profileStats = [
+    { label: "Resumes", value: totals.resumes },
+    { label: "Rewrites", value: totals.rewrites },
+    { label: "Analyses", value: totals.analyses },
   ];
 
+  const current = kpi?.atsScore?.value;
+  const first = scoreSeries?.[0]?.score;
+  const evolutionDelta = current != null && first != null ? current - first : 0;
+
   return (
-    <div className="flex flex-col gap-6">
-      {/* Welcome Section */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-heading font-bold tracking-tight">
-          Welcome back, {user?.email ? user.email.split('@')[0] : 'User'}! 👋
-        </h1>
-        <p className="text-muted-foreground">
-          Here&apos;s what&apos;s happening with your career journey today.
-        </p>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <StatCard
+          label="ATS Score"
+          value={kpi?.atsScore?.value ?? "—"}
+          suffix={kpi?.atsScore?.value != null ? "/ 100" : null}
+          delta={kpi?.atsScore?.delta}
+          chart="bars"
+          data={kpi?.atsScore?.spark || []}
+          icon={Gauge}
+        />
+        <StatCard
+          label="Versions"
+          value={kpi?.versions?.value ?? totals.resumes}
+          chart="line"
+          data={kpi?.versions?.spark || []}
+          icon={Layers}
+        />
+        <StatCard
+          label="Issues Identified"
+          value={kpi?.issuesIdentified?.value ?? "—"}
+          delta={kpi?.issuesIdentified?.delta}
+          chart="line"
+          data={kpi?.issuesIdentified?.spark || []}
+          icon={Lightbulb}
+        />
+        <StatCard
+          label="Keywords Matched"
+          value={kpi?.keywordsMatched?.value ?? "—"}
+          suffix={
+            kpi?.keywordsMatched?.total
+              ? `/ ${kpi.keywordsMatched.total}`
+              : null
+          }
+          delta={kpi?.keywordsMatched?.delta}
+          chart="line"
+          data={kpi?.keywordsMatched?.spark || []}
+          icon={KeyRound}
+          accent
+        />
       </div>
 
-      {isLoading ? (
-        <div className="flex h-64 w-full items-center justify-center border rounded-xl border-border/50 bg-card/50">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div className="lg:col-span-6">
+          {scoreSeries?.length ? (
+            <ScoreEvolutionChart
+              data={scoreSeries}
+              currentScore={current}
+              delta={evolutionDelta}
+            />
+          ) : (
+            <NoAnalysisCard
+              onAction={() =>
+                latestResume?.id && router.push(`/dashboard/resumes/${latestResume.id}`)
+              }
+            />
+          )}
         </div>
-      ) : (
-        <>
-          {/* Stats Grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {stats.map((stat, i) => (
-              <motion.div
-                key={stat.name}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-              >
-                <Card className="border-border/40 bg-card/30 backdrop-blur-xl hover:border-primary/30 hover:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all duration-300">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      {stat.name}
-                    </CardTitle>
-                    <stat.icon className="h-4 w-4 text-primary opacity-80" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{stat.value}</div>
-                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                      <TrendingUp className="h-3 w-3 text-primary" />
-                      {stat.trend}
-                    </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            {/* Recent Documents */}
-            <Card className="md:col-span-1 lg:col-span-4 border-border/40 bg-card/30 backdrop-blur-xl hover:border-primary/30 hover:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all duration-300">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Recent Documents</CardTitle>
-                  <CardDescription>You have uploaded {documents.length} documents.</CardDescription>
-                </div>
-                <Link href="/dashboard/documents" className="inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-md px-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
-                  View All <ArrowRight className="h-4 w-4 text-primary" />
-                </Link>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {documents.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No documents uploaded yet.</p>
-                  ) : (
-                    documents.slice(0, 5).map((doc) => (
-                      <div key={doc.id} className="flex items-center justify-between border-b border-border/40 pb-4 last:border-0 last:pb-0">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                            <Files className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">{doc.title}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(doc.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            doc.status === 'COMPLETED' ? 'bg-success/10 text-success' : 
-                            (doc.status === 'PENDING' || doc.status === 'PROCESSING') ? 'bg-warning/10 text-warning' : 
-                            'bg-danger/10 text-danger'
-                          }`}>
-                            {doc.status === 'FAILED' ? 'Could not upload' : doc.status}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
+        <div className="lg:col-span-3">
+          {current != null ? (
+            <AtsGauge score={current} delta={kpi?.atsScore?.delta ?? 0} />
+          ) : (
+            <Card className="h-full flex items-center justify-center text-center">
+              <div className="font-display text-sm font-semibold mb-1">
+                No score yet
+              </div>
+              <div className="text-xs text-ink-muted">
+                Run analysis to populate
+              </div>
             </Card>
+          )}
+        </div>
+        <div className="lg:col-span-3">
+          <ProfileCard user={user} stats={profileStats} />
+        </div>
+      </div>
 
-            {/* ATS Score Chart Placeholder */}
-            <Card className="md:col-span-1 lg:col-span-3 border-border/40 bg-card/30 backdrop-blur-xl hover:border-purple-500/30 hover:shadow-[0_0_15px_rgba(168,85,247,0.1)] transition-all duration-300">
-              <CardHeader>
-                <CardTitle>ATS Score History</CardTitle>
-                <CardDescription>Your resume score trend over time.</CardDescription>
-              </CardHeader>
-              <CardContent className="flex h-[250px] items-center justify-center border-t border-border/40">
-                <div className="flex flex-col items-center text-center text-muted-foreground">
-                  <CheckCircle className="mb-2 h-10 w-10 opacity-20 text-purple-500" />
-                  <p>Chart visualization will appear here.</p>
-                  <p className="text-sm">Upload more resumes to see trends.</p>
-                </div>
-              </CardContent>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div className="lg:col-span-7">
+          {versionStack?.length ? (
+            <VersionStack
+              versions={versionStack}
+              resumeId={latestResume?.id}
+              resumeTitle={latestResume?.title}
+            />
+          ) : (
+            <Card className="h-full flex items-center justify-center text-center min-h-[200px]">
+              <div className="font-display text-sm font-semibold mb-1">
+                No versions yet
+              </div>
+              <div className="text-xs text-ink-muted">
+                Versions appear after you analyze and rewrite
+              </div>
             </Card>
-          </div>
-        </>
+          )}
+        </div>
+        <div className="lg:col-span-5">
+          {activity?.length ? (
+            <ActivityFeed items={activity} />
+          ) : (
+            <Card className="h-full flex items-center justify-center text-center min-h-[200px]">
+              <div className="font-display text-sm font-semibold mb-1">
+                Quiet here
+              </div>
+              <div className="text-xs text-ink-muted">
+                Your activity feed lights up after you analyze
+              </div>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NoAnalysisCard({ onAction }: { onAction: () => void }) {
+  return (
+    <Card className="h-full flex flex-col items-center justify-center text-center min-h-[300px]">
+      <div className="h-14 w-14 rounded-2xl bg-accent-soft text-accent-strong flex items-center justify-center mb-3">
+        <Sparkles size={22} />
+      </div>
+      <div className="font-display text-base font-semibold tracking-tight">
+        Ready when you are
+      </div>
+      <p className="text-sm text-ink-muted mt-1 max-w-sm">
+        You've uploaded a resume — run analysis to see your ATS score, fixable
+        issues, and rewrite suggestions.
+      </p>
+      {onAction && (
+        <Button variant="accent" size="md" className="mt-4" onClick={onAction}>
+          <Sparkles size={14} /> Analyze now
+        </Button>
       )}
+    </Card>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-[130px] rounded-2xl" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <Skeleton className="lg:col-span-7 h-[300px] rounded-3xl" />
+        <Skeleton className="lg:col-span-3 h-[300px] rounded-3xl" />
+        <Skeleton className="lg:col-span-2 h-[300px] rounded-3xl" />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <Skeleton className="lg:col-span-7 h-[260px] rounded-3xl" />
+        <Skeleton className="lg:col-span-3 h-[260px] rounded-3xl" />
+        <Skeleton className="lg:col-span-2 h-[260px] rounded-3xl" />
+      </div>
     </div>
   );
 }

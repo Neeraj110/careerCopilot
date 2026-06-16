@@ -39,7 +39,7 @@ export function Footer() {
                 <Compass className="h-4.5 w-4.5 text-white" />
               </div>
               <span className="font-heading text-lg font-bold tracking-tight text-foreground">
-                CareerPilot
+                CareerPilot AI
               </span>
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">

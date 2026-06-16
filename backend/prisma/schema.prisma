@@ -29,11 +29,14 @@ enum MsgRole {
 
 model User {
   id        String     @id @default(uuid())
+  name      String?
   email     String     @unique
   password  String?
   googleId  String?    @unique
   documents Document[]
   chats     Chat[]
+  resumes   Resume[]
+  roadmaps  Roadmap[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }
@@ -50,17 +53,17 @@ model Document {
   chunks    Chunk[]
   chats     Chat[]
   createdAt DateTime  @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime  @updatedAt
 }
 
 model Chunk {
-  id         String   @id @default(uuid())
+  id         String                       @id @default(uuid())
   documentId String
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  document   Document                     @relation(fields: [documentId], references: [id], onDelete: Cascade)
   content    String
   metadata   Json?
   embedding  Unsupported("vector(1024)")?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime                     @default(now())
 }
 
 model Chat {
@@ -82,4 +85,63 @@ model Message {
   content   String
   sources   Json?
   createdAt DateTime @default(now())
+}
+
+// ── Resume Versioning ──────────────────────────────────────────────────
+
+model Resume {
+  id               String          @id @default(uuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String
+  currentVersionId String?
+  versions         ResumeVersion[]
+  analyses         Analysis[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
+
+model ResumeVersion {
+  id             String     @id @default(uuid())
+  resumeId       String
+  resume         Resume     @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  label          String // "V1", "V2", etc.
+  sourceType     String     @default("upload") // "upload" | "rewrite"
+  parsedSections Json? // { basics, summary, experience, education, skills, projects, certifications, languages, interests }
+  rawText        String?
+  analyses       Analysis[]
+  createdAt      DateTime   @default(now())
+}
+
+model Analysis {
+  id              String        @id @default(uuid())
+  resumeId        String
+  resume          Resume        @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  versionId       String
+  version         ResumeVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  atsScore        Int
+  targetRole      String?
+  summary         String?
+  model           String?
+  scoreBreakdown  Json? // { formatting, keywords, experience, skills, overall }
+  issues          Json? // [{ title, description, severity, section }]
+  strengths       Json? // [{ title, description }]
+  keywordsPresent Json? // string[]
+  keywordsMissing Json? // string[]
+  bulletRewrites  Json? // [{ id, original, rewritten, section, reason }]
+  createdAt       DateTime      @default(now())
+}
+
+model Roadmap {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  skill      String
+  level      String
+  targetGoal String
+  roadmap    Json     // Store the generated roadmap structure
+  resources  Json?    // Store the ranked resources
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

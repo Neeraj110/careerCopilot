@@ -37,7 +37,7 @@ export default function LoginPage() {
         Welcome back
       </h1>
       <p className="mb-8 text-muted-foreground">
-        Sign in to your CareerPilot account
+        Sign in to your CareerPilot AI account
       </p>
 
       {error && (

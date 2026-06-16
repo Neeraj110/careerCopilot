@@ -1,7 +1,7 @@
 // roadmap.routes.ts
 import { Router } from "express";
 import { requireAuth } from "../../middlewares/auth";
-import { generateRoadmap } from "./roadmap.controller";
+import { generateRoadmap, listRoadmaps, getRoadmap } from "./roadmap.controller";
 
 const router = Router();
 router.use(requireAuth);
@@ -37,5 +37,7 @@ router.use(requireAuth);
  *         description: Unauthorized
  */
 router.post("/generate", generateRoadmap);
+router.get("/", listRoadmaps);
+router.get("/:id", getRoadmap);
 
 export default router;

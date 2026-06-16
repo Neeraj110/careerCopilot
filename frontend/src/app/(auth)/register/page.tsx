@@ -24,7 +24,7 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: RegisterFormValues) => {
     try {
-      await registerUser(data.email, data.password);
+      await registerUser(data.name, data.email, data.password);
       router.push("/dashboard");
     } catch {
       // Error handled by store
@@ -37,7 +37,7 @@ export default function RegisterPage() {
         Create an account
       </h1>
       <p className="mb-8 text-muted-foreground">
-        Join CareerPilot to turbocharge your career
+        Join CareerPilot AI to turbocharge your career
       </p>
 
       {error && (
@@ -50,6 +50,26 @@ export default function RegisterPage() {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        <div>
+          <label
+            htmlFor="name"
+            className="mb-2 block text-sm font-medium text-foreground"
+          >
+            Name
+          </label>
+          <input
+            id="name"
+            type="text"
+            autoComplete="name"
+            placeholder="John Doe"
+            className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            {...register("name")}
+          />
+          {errors.name && (
+            <p className="mt-1.5 text-xs text-danger">{errors.name.message}</p>
+          )}
+        </div>
+
         <div>
           <label
             htmlFor="email"

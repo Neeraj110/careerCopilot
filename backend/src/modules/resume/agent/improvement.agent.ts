@@ -1,6 +1,7 @@
 import { END, START, Annotation, StateGraph } from "@langchain/langgraph";
 import { ChatMistralAI } from "@langchain/mistralai";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
+import { z } from "zod";
 import { config } from "../../../config";
 
 const ResumeImprovementState = Annotation.Root({
@@ -14,7 +15,7 @@ const ResumeImprovementState = Annotation.Root({
   }>(),
   gaps: Annotation<{
     missing: string[];
-    partial: string[];
+    partial: { requirement: string; foundAs: string }[];
     present: string[];
   }>(),
   improvedBullets: Annotation<
@@ -30,19 +31,20 @@ const ResumeImprovementState = Annotation.Root({
 
 export type ImprovementAgentState = typeof ResumeImprovementState.State;
 
-const model = new ChatMistralAI({
+const rawModel = new ChatMistralAI({
   apiKey: config.mistralApiKey,
   model: "mistral-large-latest",
   temperature: 0.4,
+  maxRetries: 2,
 });
 
-const parseJSON = (content: string) => {
-  const cleaned = content.replace(/```json|```/g, "").trim();
-  return JSON.parse(cleaned);
-};
-
 async function parseResumeNode(state: ImprovementAgentState) {
-  const response = await model.invoke([
+  const schema = z.object({
+    bullets: z.array(z.string()).describe("Achievement-oriented bullet points extracted exactly as written")
+  });
+  const structuredModel = rawModel.withStructuredOutput(schema, { name: "ParseResume" });
+
+  const response = await structuredModel.invoke([
     new SystemMessage(`
       You are a resume parser. Extract every achievement-oriented bullet point
       from the resume — only from Experience, Projects, and Internship sections.
@@ -52,24 +54,22 @@ async function parseResumeNode(state: ImprovementAgentState) {
       - Keep bullets exactly as written — do NOT paraphrase or fix grammar yet
       - If a bullet spans multiple lines, merge into one string
       - Include bullets even if they are weak or vague (they will be improved later)
-
-      Return ONLY this JSON, no markdown:
-      {
-        "bullets": [
-          "Built a REST API for user authentication",
-          "Reduced page load time by optimizing queries"
-        ]
-      }
     `),
     new HumanMessage(`RESUME:\n${state.resumeText}`),
   ]);
 
-  const { bullets } = parseJSON(response.content as string);
-  return { parsedBullets: bullets };
+  return { parsedBullets: response.bullets };
 }
 
 async function analyzeJDNode(state: ImprovementAgentState) {
-  const response = await model.invoke([
+  const schema = z.object({
+    keywords: z.array(z.string()).describe("Exact technical keywords that an ATS would scan for"),
+    mustHave: z.array(z.string()).describe("Must-have requirements explicitly stated as required/mandatory"),
+    niceToHave: z.array(z.string()).describe("Nice-to-have requirements stated as preferred/bonus/plus")
+  });
+  const structuredModel = rawModel.withStructuredOutput(schema, { name: "AnalyzeJD" });
+
+  const response = await structuredModel.invoke([
     new SystemMessage(`
       You are a senior technical recruiter analyzing a job description.
 
@@ -83,22 +83,25 @@ async function analyzeJDNode(state: ImprovementAgentState) {
       - keywords should be short exact terms, not sentences
       - mustHave and niceToHave should be skill/requirement phrases, not full sentences
       - Do not invent requirements not present in the JD
-
-      Return ONLY this JSON, no markdown:
-      {
-        "keywords": ["Next.js", "TypeScript", "PostgreSQL", "REST APIs"],
-        "mustHave": ["3+ years React experience", "Node.js backend", "SQL databases"],
-        "niceToHave": ["GraphQL", "AWS", "Docker", "system design experience"]
-      }
     `),
     new HumanMessage(`JOB DESCRIPTION:\n${state.jdText}`),
   ]);
 
-  return { jdRequirements: parseJSON(response.content as string) };
+  return { jdRequirements: response };
 }
 
 async function findGapsNode(state: ImprovementAgentState) {
-  const response = await model.invoke([
+  const schema = z.object({
+    missing: z.array(z.string()).describe("Requirements not mentioned anywhere in the resume bullets"),
+    partial: z.array(z.object({
+      requirement: z.string(),
+      foundAs: z.string()
+    })).describe("Requirements hinted at but not explicitly stated"),
+    present: z.array(z.string()).describe("Requirements clearly demonstrated in at least one bullet")
+  });
+  const structuredModel = rawModel.withStructuredOutput(schema, { name: "FindGaps" });
+
+  const response = await structuredModel.invoke([
     new SystemMessage(`
       You are a resume gap analyst. Compare resume bullets against JD requirements.
 
@@ -107,15 +110,6 @@ async function findGapsNode(state: ImprovementAgentState) {
       - partial:  requirement is hinted at but not explicitly stated
                   (e.g. JD says "AWS" but resume says "deployed on cloud")
       - present:  requirement is clearly demonstrated in at least one bullet
-
-      Return ONLY this JSON, no markdown:
-      {
-        "missing": ["GraphQL", "Docker", "system design"],
-        "partial": [
-          { "requirement": "AWS", "foundAs": "deployed on cloud platform" }
-        ],
-        "present": ["REST APIs", "PostgreSQL", "TypeScript"]
-      }
     `),
     new HumanMessage(`
       RESUME BULLETS:
@@ -128,10 +122,19 @@ async function findGapsNode(state: ImprovementAgentState) {
     `),
   ]);
 
-  return { gaps: parseJSON(response.content as string) };
+  return { gaps: response };
 }
 
 async function rewriteBulletsNode(state: ImprovementAgentState) {
+  const schema = z.object({
+    bullets: z.array(z.object({
+      original: z.string(),
+      improved: z.string(),
+      reason: z.string()
+    }))
+  });
+  const structuredModel = rawModel.withStructuredOutput(schema, { name: "RewriteBullets" });
+
   const retryContext =
     state.retryCount > 0
       ? `
@@ -146,7 +149,7 @@ async function rewriteBulletsNode(state: ImprovementAgentState) {
     `
       : "";
 
-  const response = await model.invoke([
+  const response = await structuredModel.invoke([
     new SystemMessage(`
       You are an expert resume writer who specializes in tech roles.
       Rewrite each resume bullet to be stronger and more aligned with the JD.
@@ -164,17 +167,6 @@ async function rewriteBulletsNode(state: ImprovementAgentState) {
          only if the original bullet makes it reasonable to assume
 
       ${retryContext}
-
-      Return ONLY this JSON, no markdown:
-      {
-        "bullets": [
-          {
-            "original": "Made the app faster",
-            "improved": "Optimized PostgreSQL query performance, reducing API response time by 42% for 1000+ daily active users",
-            "reason": "Added metric, named the DB (JD keyword), added user scale context"
-          }
-        ]
-      }
     `),
     new HumanMessage(`
       ORIGINAL BULLETS:
@@ -189,12 +181,23 @@ async function rewriteBulletsNode(state: ImprovementAgentState) {
     `),
   ]);
 
-  const { bullets } = parseJSON(response.content as string);
-  return { improvedBullets: bullets };
+  return { improvedBullets: response.bullets };
 }
 
 async function validateNode(state: ImprovementAgentState) {
-  const response = await model.invoke([
+  const schema = z.object({
+    score: z.number().min(0).max(100),
+    breakdown: z.object({
+      keywordCoverage: z.number(),
+      specificity: z.number(),
+      actionVerbs: z.number(),
+      mustHaveCoverage: z.number()
+    }),
+    weakestBullets: z.array(z.string())
+  });
+  const structuredModel = rawModel.withStructuredOutput(schema, { name: "Validate" });
+
+  const response = await structuredModel.invoke([
     new SystemMessage(`
       You are a strict ATS scoring system evaluating improved resume bullets
       against a job description.
@@ -207,20 +210,6 @@ async function validateNode(state: ImprovementAgentState) {
 
       Be strict — a score of 70+ means the bullets are genuinely strong.
       Do not inflate scores.
-
-      Return ONLY this JSON, no markdown:
-      {
-        "score": 74,
-        "breakdown": {
-          "keywordCoverage": 32,
-          "specificity": 24,
-          "actionVerbs": 12,
-          "mustHaveCoverage": 6
-        },
-        "weakestBullets": [
-          "bullet text that still needs work"
-        ]
-      }
     `),
     new HumanMessage(`
       IMPROVED BULLETS:
@@ -230,9 +219,8 @@ async function validateNode(state: ImprovementAgentState) {
     `),
   ]);
 
-  const result = parseJSON(response.content as string);
   return {
-    validationScore: result.score,
+    validationScore: response.score,
     retryCount: (state.retryCount ?? 0) + 1,
   };
 }

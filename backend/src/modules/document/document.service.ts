@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from "uuid";
 
 // ─── Text Extraction ─────────────────────────────────────────────
 
-const extractText = async (
+export const extractText = async (
   buffer: Buffer,
   mimeType: string,
 ): Promise<string> => {

@@ -38,6 +38,8 @@
   --color-muted-foreground: var(--muted-foreground);
 
   /* Typography - uses CSS variables from Next.js font loader */
+  --font-sans: 'Google Sans Flex', 'Google Sans', 'Inter', 'Roboto', sans-serif;
+  --font-display: 'Google Sans Flex', 'Google Sans', sans-serif;
   --font-mono: 'Geist Mono', 'JetBrains Mono', monospace;
 
   /* Radius */
@@ -85,20 +87,73 @@
   --color-card-foreground: var(--card-foreground);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Legacy Design System Color Mappings */
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-bg: var(--bg);
+  --color-surface-2: var(--surface-2);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-v2: var(--accent-v2);
+  --color-accent-hero: var(--accent-hero);
+  --color-accent-hero-2: var(--accent-hero-2);
+  --color-v2-bg: var(--v2-bg);
+  --color-v2-ink: var(--v2-ink);
+  --color-v2-ink-muted: var(--v2-ink-muted);
+  --color-v2-accent-soft: var(--v2-accent-soft);
+  --color-v2-accent-strong: var(--v2-accent-strong);
+  --color-v2-danger: var(--v2-danger);
+  --color-v2-success: var(--v2-success);
 }
 
 /* ─── Base Styles ───────────────────────────────────────────────── */
 
 html {
   color-scheme: light dark;
-  font-size: 14px;
+  font-size: 15px; /* Slightly increased for better readability */
 }
 
 body {
+  font-family: var(--font-sans);
   background: var(--color-background);
   color: var(--color-foreground);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6, .font-display {
+  font-family: var(--font-display);
+}
+
+/* ─── Custom Font Classes ───────────────────────────────────────── */
+.font-google-sans-flex {
+  font-family: "Google Sans Flex", sans-serif;
+  font-optical-sizing: auto;
+  font-variation-settings:
+    "slnt" 0,
+    "wdth" 100,
+    "GRAD" 0,
+    "ROND" 0;
+}
+
+.font-google-sans {
+  font-family: "Google Sans", sans-serif;
+  font-optical-sizing: auto;
+  font-variation-settings:
+    "GRAD" 0;
+}
+
+.font-inter {
+  font-family: "Inter", sans-serif;
+  font-optical-sizing: auto;
+}
+
+.font-roboto {
+  font-family: "Roboto", sans-serif;
+  font-optical-sizing: auto;
+  font-variation-settings:
+    "wdth" 100;
 }
 
 /* ─── Scrollbar ─────────────────────────────────────────────────── */
@@ -301,3 +356,52 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* ─── Legacy Token Aliases ──────────────────────────────────────── */
+/* Components use the older demo-frontend design-system names.      */
+/* Map them to the new shadcn tokens so nothing breaks.             */
+
+:root {
+  /* Text */
+  --ink:              var(--foreground);
+  --ink-muted:        var(--muted-foreground);
+
+  /* Surfaces */
+  --bg:               var(--background);
+  --surface-2:        var(--secondary);
+
+  /* Accent tints — blue-tinted in the new theme */
+  --accent-soft:      var(--primary-muted);
+  --accent-strong:    var(--primary);
+  --accent-v2:        var(--primary);
+
+  /* Hero gradients */
+  --accent-hero:      var(--primary);
+  --accent-hero-2:    var(--primary-hover);
+
+  /* v2-prefixed aliases (used by some older components) */
+  --v2-bg:            var(--background);
+  --v2-ink:           var(--foreground);
+  --v2-ink-muted:     var(--muted-foreground);
+  --v2-accent-soft:   var(--primary-muted);
+  --v2-accent-strong: var(--primary);
+  --v2-danger:        var(--danger);
+  --v2-success:       var(--success);
+
+  /* Shadows */
+  --shadow-card:      0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.dark {
+  --shadow-card:      0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* ─── Scrollbar Utility ─────────────────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+

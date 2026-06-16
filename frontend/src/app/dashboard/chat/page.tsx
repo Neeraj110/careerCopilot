@@ -19,6 +19,10 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+// import { PageHeader } from "@/components/layout/page-header";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { chatApi } from "@/lib/api/chat";
 import { documentsApi } from "@/lib/api/documents";
@@ -217,20 +221,20 @@ export default function ChatPage() {
   const activeChat = chats.find(c => c.id === activeChatId);
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="flex h-[calc(100vh-7rem)] gap-4"
-    >
-      {/* Chat History Sidebar */}
-      <div className="hidden w-56 flex-col rounded-lg border border-border/40 bg-card/30 backdrop-blur-xl shadow-xl shadow-black/20 lg:flex">
-        <div className="p-4 border-b border-border/50">
-          <Button onClick={() => { setIsNewChatDialogOpen(true); setNewChatTitle(""); }} className="w-full flex items-center gap-2" variant="outline">
-            <Plus className="h-4 w-4" /> New Chat
-          </Button>
-        </div>
-        <div className="flex-1 min-h-0">
+    <div className="space-y-6 h-[calc(100vh-6.5rem)] flex flex-col">
+      {/* <PageHeader
+        title="Chat"
+        description="Ask anything about your career, resumes, or interview prep."
+      /> */}
+      <div className="flex h-full gap-5 min-h-0">
+        {/* Chat History Sidebar */}
+        <Card padding="none" className="hidden w-64 flex-col lg:flex overflow-hidden">
+          <div className="p-4 border-b border-border">
+            <Button onClick={() => { setIsNewChatDialogOpen(true); setNewChatTitle(""); }} className="w-full flex items-center gap-2" variant="outline">
+              <Plus className="h-4 w-4" /> New Chat
+            </Button>
+          </div>
+          <div className="flex-1 min-h-0 bg-surface-2/30">
           <ScrollArea className="h-full p-3">
             {isLoadingChats ? (
               <div className="flex justify-center p-4">
@@ -267,12 +271,12 @@ export default function ChatPage() {
             )}
           </ScrollArea>
         </div>
-      </div>
+        </Card>
 
       {/* Main Chat Area */}
-      <div className="flex flex-1 flex-col overflow-hidden rounded-lg border border-border/40 bg-card/30 backdrop-blur-xl shadow-xl shadow-black/20">
+      <Card padding="none" className="flex flex-1 flex-col overflow-hidden">
         {/* Chat Header */}
-        <div className="flex items-center justify-between border-b border-border/50 p-3">
+        <div className="flex items-center justify-between border-b border-border p-4 bg-surface">
           <div className="flex items-center gap-2">
             <Sheet open={isMobileChatOpen} onOpenChange={setIsMobileChatOpen}>
               <SheetTrigger render={<Button variant="ghost" size="icon" className="lg:hidden" />}>
@@ -346,7 +350,7 @@ export default function ChatPage() {
         </div>
 
         {/* Chat Messages */}
-        <div className="flex-1 min-h-0 ">
+        <div className="flex-1 min-h-0 bg-surface-2/30">
           <ScrollArea className="h-full p-4">
             <div className="space-y-6">
               {messages.length === 0 && !isTyping ? (
@@ -375,8 +379,8 @@ export default function ChatPage() {
                     )}
                     <div
                       className={`rounded-xl max-w-[85%] ${message.role === "USER"
-                        ? "bg-primary text-primary-foreground px-4 py-3"
-                        : "text-foreground prose prose-sm dark:prose-invert prose-p:leading-relaxed prose-pre:p-0 max-w-none px-2 py-1"
+                        ? "bg-ink text-bg px-4 py-3 shadow-card"
+                        : "text-ink prose dark:prose-invert prose-sm max-w-none px-2 py-1"
                         }`}
                     >
                       {message.role === "USER" ? (
@@ -419,26 +423,27 @@ export default function ChatPage() {
         </div>
 
         {/* Chat Input */}
-        <div className="border-t border-border/50 p-4">
+        <div className="border-t border-border p-4 bg-surface">
           <form
             onSubmit={handleSend}
-            className="flex items-center gap-2 rounded-lg border border-border/40 bg-card/50 p-1 pr-2 shadow-sm focus-within:ring-1 focus-within:ring-primary focus-within:border-primary transition-all"
+            className="flex items-center gap-2 rounded-xl border border-border bg-surface p-1.5 pr-2 shadow-sm focus-within:ring-1 focus-within:ring-accent-v2 focus-within:border-accent-v2 transition-all"
           >
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask anything about your career or documents..."
-              className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none"
+              className="flex-1 border-0 bg-transparent shadow-none px-3"
             />
-            <Button type="submit" size="icon" disabled={!input.trim() || isTyping} className="h-8 w-8 rounded-md shrink-0">
-              <Send className="h-4 w-4" />
-              <span className="sr-only">Send message</span>
+            <Button type="submit" variant="accent" size="sm" disabled={!input.trim() || isTyping} className="h-9 px-4 rounded-lg shrink-0">
+              <Send className="h-4 w-4 mr-2" />
+              Send
             </Button>
           </form>
-          <p className="mt-2 text-center text-xs text-muted-foreground">
+          {/* <p className="mt-3 text-center text-[11px] text-ink-muted">
             AI can make mistakes. Verify important information.
-          </p>
+          </p> */}
         </div>
+      </Card>
       </div>
 
       <Dialog open={isNewChatDialogOpen} onOpenChange={setIsNewChatDialogOpen}>
@@ -463,6 +468,6 @@ export default function ChatPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </motion.div>
+    </div>
   );
 }

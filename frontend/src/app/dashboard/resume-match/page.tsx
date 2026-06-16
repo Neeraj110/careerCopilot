@@ -9,6 +9,7 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -34,15 +35,9 @@ export default function ResumeMatchPage() {
   const [improveResult, setImproveResult] = useState<ImproveResult | null>(null);
 
   useEffect(() => {
-    const fetchDocs = async () => {
-      try {
-        const res = await documentsApi.getAll();
-        setDocuments(res.data || []);
-      } catch (err) {
-        console.error("Failed to fetch documents", err);
-      }
-    };
-    fetchDocs();
+    documentsApi.getAll()
+      .then(res => setDocuments((res.data as unknown as Document[]) || []))
+      .catch(console.error);
   }, []);
 
   const handleAnalyze = async () => {
@@ -84,15 +79,13 @@ export default function ResumeMatchPage() {
       transition={{ duration: 0.5 }}
       className="flex flex-col gap-6"
     >
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-heading font-bold tracking-tight">Resume vs Job Description Match</h1>
-        <p className="text-muted-foreground">
-          Paste a job description to see how well your resume matches and what skills you are missing.
-        </p>
-      </div>
+      <PageHeader 
+        title="Resume vs Job Description Match" 
+        description="Select an uploaded document and paste a job description to score your resume and auto-improve bullets." 
+      />
 
       <div className="grid gap-6 lg:grid-cols-2 ">
-        <Card className="border-border/40 bg-card/30 backdrop-blur-xl h-fit shadow-xl shadow-black/20 hover:border-primary/30 transition-all duration-300">
+        <Card className="h-fit">
           <CardHeader>
             <CardTitle>Job Details</CardTitle>
             <CardDescription>Select a resume and paste the target job description.</CardDescription>
@@ -100,16 +93,16 @@ export default function ResumeMatchPage() {
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <label className="text-sm font-medium">1. Select Resume</label>
-              <div className="flex items-center gap-3 rounded-md border border-border/40 bg-muted/10 backdrop-blur-md p-1">
+              <div className="flex items-center gap-3 rounded-md border border-border bg-surface-2 p-1">
                 <DropdownMenu>
-                  <DropdownMenuTrigger className="w-full flex h-10 items-center justify-between whitespace-nowrap rounded-md bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring hover:bg-accent/50 transition-colors disabled:cursor-not-allowed disabled:opacity-50">
+                  <DropdownMenuTrigger className="w-full flex h-10 items-center justify-between whitespace-nowrap rounded-md bg-surface px-3 py-2 text-sm shadow-sm hover:bg-surface-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50">
                     <div className="flex items-center gap-2 overflow-hidden">
                       <FileText className="h-4 w-4 shrink-0 text-primary" />
                       <span className="truncate">{selectedDoc ? selectedDoc.title : "Select a document..."}</span>
                     </div>
                     <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-[300px] bg-card/80 backdrop-blur-xl border-border/40">
+                  <DropdownMenuContent align="start" className="w-[300px]">
                     {documents.map(doc => (
                       <DropdownMenuItem key={doc.id} onClick={() => setSelectedDocId(doc.id)}>
                         <span className="truncate">{doc.title}</span>
@@ -160,7 +153,7 @@ export default function ResumeMatchPage() {
             animate={{ opacity: 1, x: 0 }}
             className="flex flex-col gap-6"
           >
-            <Card className="border-border/40 bg-card/30 backdrop-blur-xl overflow-hidden relative shadow-xl shadow-black/20 hover:border-primary/30 transition-all duration-300">
+            <Card className="overflow-hidden relative border-accent-v2/30 hover:border-accent-v2/50">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -187,7 +180,7 @@ export default function ResumeMatchPage() {
             </Card>
 
             {result.missingSkills.length > 0 && (
-              <Card className="border-border/40 bg-card/30 backdrop-blur-xl shadow-xl shadow-black/20 hover:border-warning/30 transition-all duration-300">
+              <Card className="border-warning/30 hover:border-warning/50">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5 text-warning" /> Missing Skills
@@ -209,7 +202,7 @@ export default function ResumeMatchPage() {
             )}
 
             {result.strengths.length > 0 && (
-              <Card className="border-border/40 bg-card/30 backdrop-blur-xl shadow-xl shadow-black/20 hover:border-success/30 transition-all duration-300">
+              <Card className="border-success/30 hover:border-success/50">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Zap className="h-5 w-5 text-success" /> Strengths
@@ -228,7 +221,7 @@ export default function ResumeMatchPage() {
             )}
 
             {result.recommendations.length > 0 && (
-              <Card className="border-border/40 bg-card/30 backdrop-blur-xl shadow-xl shadow-black/20 hover:border-primary/30 transition-all duration-300">
+              <Card className="border-accent-v2/30 hover:border-accent-v2/50">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <ArrowRight className="h-5 w-5 text-primary" /> Recommendations
@@ -258,7 +251,7 @@ export default function ResumeMatchPage() {
             animate={{ opacity: 1, x: 0 }}
             className="flex flex-col gap-6"
           >
-            <Card className="border-border/40 bg-card/30 backdrop-blur-xl overflow-hidden relative border-blue-500/30 shadow-xl shadow-black/20 hover:border-blue-500/50 transition-all duration-300">
+            <Card className="overflow-hidden relative border-accent-strong/30 hover:border-accent-strong/50">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent pointer-events-none" />
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">

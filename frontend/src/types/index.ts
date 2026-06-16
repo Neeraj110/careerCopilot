@@ -2,6 +2,7 @@
 
 export interface User {
   id: string;
+  name?: string | null;
   email: string;
   googleId?: string | null;
   createdAt: string;
@@ -160,6 +161,11 @@ export interface RoadmapWeek {
 }
 
 export interface RoadmapResult {
+  id?: string;
+  title?: string;
+  skill?: string;
+  level?: string;
+  targetGoal?: string;
   roadmap: {
     skill: string;
     level: string;
@@ -168,6 +174,16 @@ export interface RoadmapResult {
     milestones?: RoadmapWeek[];
   };
   resources: RoadmapResource[];
+  createdAt?: string;
+}
+
+export interface SavedRoadmap {
+  id: string;
+  title: string;
+  skill: string;
+  level: string;
+  targetGoal: string;
+  createdAt: string;
 }
 
 // ─── API Response Wrapper ────────────────────────────────────────

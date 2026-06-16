@@ -1,43 +1,17 @@
 import type { Metadata } from "next";
-import { Inter, Manrope, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryProvider } from "@/providers/query-provider";
-import { ThemeProvider } from "@/providers/theme-provider";
+import { ThemeProvider } from "@/providers/theme-provider-v2";
+import { UIProvider } from "@/providers/ui-provider";
 import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const manrope = Manrope({
-  variable: "--font-heading",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: {
-    default: "CareerPilot AI — AI-Powered Career Growth Platform",
+    default: "CareerPilot AI",
     template: "%s | CareerPilot AI",
   },
   description:
-    "Learn skills, chat with documents, analyze resumes, calculate ATS scores, compare resumes against job descriptions, generate learning roadmaps, and improve resumes using AI.",
-  keywords: [
-    "AI career assistant",
-    "resume analyzer",
-    "ATS checker",
-    "learning roadmap",
-    "document chat",
-    "career growth",
-  ],
+    "Learn skills, analyze resumes, generate roadmaps, and improve resumes using AI.",
 };
 
 export default function RootLayout({
@@ -48,18 +22,24 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${manrope.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
-      <body className="min-h-screen bg-background font-sans text-foreground antialiased">
+      <head>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <style dangerouslySetInnerHTML={{ __html: `@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');` }} />
+      </head>
+      <body className="min-h-screen bg-background text-foreground antialiased selection:bg-blue-500/30 selection:text-white">
         <ThemeProvider>
-          <QueryProvider>
-            <TooltipProvider>
-              {children}
-            </TooltipProvider>
-          </QueryProvider>
+          <UIProvider>
+            <QueryProvider>
+              <TooltipProvider>
+                {children}
+              </TooltipProvider>
+            </QueryProvider>
+          </UIProvider>
         </ThemeProvider>
       </body>
     </html>
   );
 }
+

@@ -1,6 +1,7 @@
 import { Annotation, START, END, StateGraph } from "@langchain/langgraph";
 import { ChatMistralAI } from "@langchain/mistralai";
 import { TavilySearch } from "@langchain/tavily";
+import { z } from "zod";
 import { config } from "../../../config";
 
 export const RoadmapState = Annotation.Root({
@@ -40,53 +41,46 @@ export const RoadmapState = Annotation.Root({
 
 export type RoadmapAgentState = typeof RoadmapState.State;
 
-
-
-const llm = new ChatMistralAI({
+const rawLlm = new ChatMistralAI({
   apiKey: config.mistralApiKey,
   model: "mistral-large-latest",
   temperature: 0.3,
+  maxRetries: 2,
+  timeout: 300000,
 });
 
 const tavily = new TavilySearch({
-  maxResults: 5,
+  maxResults: 6,
   topic: "general",
   searchDepth: "advanced",
+  tavilyApiKey: config.tavilyApiKey,
 });
-
-const invokeJSON = async (prompt: string): Promise<any> => {
-  const response = await llm.invoke(prompt);
-  const text =
-    typeof response.content === "string"
-      ? response.content
-      : JSON.stringify(response.content);
-
-  // Strip ```json ... ``` blocks
-  const cleaned = text.replace(/```json\n?|\n?```/g, "").trim();
-  return JSON.parse(cleaned);
-};
 
 export async function queryGeneratorNode(state: RoadmapAgentState) {
   console.log("[Node 1] queryGeneratorNode running...");
 
+  const querySchema = z.object({
+    queries: z.array(z.string()).length(6).describe("Exactly 6 specific Google search queries")
+  });
+
+  const structuredLlm = rawLlm.withStructuredOutput(querySchema, { name: "QueryGenerator" });
+
   const prompt = `
 You are an expert learning coach.
-Generate exactly 4 specific Google search queries to find the BEST learning resources for:
+Generate exactly 6 specific Google search queries to find the BEST learning resources (documentation, courses, tutorials, github projects, medium/blog) for:
 
 Skill: ${state.skill}
 Level: ${state.level}
 Goal: ${state.targetGoal}
 
 Rules:
-- Queries should target different resource types (courses, tutorials, projects, docs)
-- Include year 2024 or 2025 for recency
+- Queries should target different resource types (official documentation, top video tutorials, step-by-step guides, GitHub practice repositories, articles, and interactive courses)
+- Include year 2025 or 2026 for recency
 - Be specific, not generic
-
-Return ONLY a JSON array of 4 strings. No explanation.
-Example: ["best Next.js course for beginners 2024", "Next.js projects for practice github"]
   `;
 
-  const queries = await invokeJSON(prompt);
+  const result = await structuredLlm.invoke(prompt);
+  const queries = result.queries;
 
   console.log("[Node 1] Generated queries:", queries);
   return { searchQueries: queries };
@@ -99,26 +93,28 @@ export async function webSearcherNode(
 
   const allResults: { title: string; url: string; snippet: string }[] = [];
 
-  for (const query of state.searchQueries) {
+  // Execute searches in parallel to avoid timeouts
+  const searchPromises = state.searchQueries.map(async (query) => {
     try {
-      // Invoke Tavily search — returns JSON string
       const resultStr = await tavily.invoke({ query });
       const parsed =
         typeof resultStr === "string" ? JSON.parse(resultStr) : resultStr;
-
-      // Extract results array
-      const results = parsed.results || [];
-
-      for (const r of results) {
-        allResults.push({
-          title: r.title || "",
-          url: r.url || "",
-          snippet: r.content || "",
-        });
-      }
+      return parsed.results || [];
     } catch (err) {
       console.error(`[Node 2] Search failed for query: "${query}"`, err);
-      // Don't stop the whole node if one query fails
+      return [];
+    }
+  });
+
+  const resultsArray = await Promise.all(searchPromises);
+
+  for (const results of resultsArray) {
+    for (const r of results) {
+      allResults.push({
+        title: r.title || "",
+        url: r.url || "",
+        snippet: r.content || "",
+      });
     }
   }
 
@@ -144,9 +140,21 @@ export async function resourceRankerNode(
     return { rankedResources: [] };
   }
 
+  const rankSchema = z.object({
+    resources: z.array(z.object({
+      title: z.string(),
+      url: z.string(),
+      type: z.enum(["Course", "Article", "Video", "Documentation", "Book"]),
+      relevanceScore: z.number().min(0).max(100),
+      whyUseful: z.string()
+    })).describe("The BEST 16 learning resources selected from the raw list")
+  });
+
+  const structuredLlm = rawLlm.withStructuredOutput(rankSchema, { name: "ResourceRanker" });
+
   const prompt = `
 You are a learning resource curator.
-From the resources below, select the BEST 8 for learning "${state.skill}" at "${state.level}" level.
+From the resources below, select the BEST 16 for learning "${state.skill}" at "${state.level}" level.
 
 Resources:
 ${JSON.stringify(state.rawResources, null, 2)}
@@ -155,24 +163,14 @@ For each selected resource:
 1. Assign type: "Course" | "Article" | "Video" | "Documentation" | "Book"
 2. Give relevanceScore: 0-100
 3. Write whyUseful: one line explaining why
-
-Return ONLY a JSON array like:
-[
-  {
-    "title": "...",
-    "url": "...",
-    "type": "Course",
-    "relevanceScore": 92,
-    "whyUseful": "Step-by-step beginner course with projects"
-  }
-]
   `;
 
-  const ranked = await invokeJSON(prompt);
+  const result = await structuredLlm.invoke(prompt);
+  const ranked = result.resources;
 
   // Sort by relevance score descending
   const sorted = ranked.sort(
-    (a: any, b: any) => b.relevanceScore - a.relevanceScore,
+    (a, b) => b.relevanceScore - a.relevanceScore,
   );
 
   console.log(`[Node 3] Ranked ${sorted.length} resources`);
@@ -187,43 +185,46 @@ export async function roadmapFormatterNode(
   const weeks =
     state.level === "beginner" ? 4 : state.level === "intermediate" ? 6 : 8;
 
+  const roadmapSchema = z.object({
+    skill: z.string(),
+    totalWeeks: z.number(),
+    milestones: z.array(z.object({
+      week: z.number(),
+      focus: z.string().describe("Detailed Topic name"),
+      topics: z.array(z.string()).describe("subtopics with details"),
+      resources: z.array(z.object({
+        title: z.string(),
+        url: z.string(),
+        type: z.string()
+      })),
+      project: z.string().describe("Project idea and features"),
+      interviewQuestions: z.array(z.string())
+    }))
+  });
+
+  const structuredLlm = rawLlm.withStructuredOutput(roadmapSchema, { name: "RoadmapFormatter" });
+
   const prompt = `
 You are an expert learning path designer.
-Create a ${weeks}-week structured roadmap for:
+Create a structured ${weeks}-week roadmap for:
 
 Skill: ${state.skill}
 Level: ${state.level}
 Goal: ${state.targetGoal}
 
-Available resources:
+Available resources (choose from this list to assign real, high-quality links to each week):
 ${JSON.stringify(state.rankedResources, null, 2)}
 
 Rules:
-- Each week should build on the previous
-- Assign 2-3 resources per week from the list above
-- Give 1 practical project idea per week
-- Give 2 interview questions per week relevant to that week's topic
-
-Return ONLY this JSON structure:
-{
-  "skill": "${state.skill}",
-  "totalWeeks": ${weeks},
-  "milestones": [
-    {
-      "week": 1,
-      "focus": "Topic name",
-      "topics": ["subtopic1", "subtopic2"],
-      "resources": [
-        { "title": "...", "url": "...", "type": "Course" }
-      ],
-      "project": "Build a simple...",
-      "interviewQuestions": ["What is...?", "How does...?"]
-    }
-  ]
-}
+- Keep all descriptions, topics, and project ideas brief and concise (1-2 sentences max).
+- Each week should build on the previous, covering the topic incrementally.
+- Assign 1-2 highly relevant, distinct resources per week from the list above.
+- Include a brief description for each key topic of the week.
+- Provide 1 simple practical project idea per week, explaining briefly what to build.
+- Provide 2 interview questions per week relevant to that week's topic.
   `;
 
-  const roadmap = await invokeJSON(prompt);
+  const roadmap = await structuredLlm.invoke(prompt);
 
   console.log(`[Node 4] Roadmap generated: ${roadmap.totalWeeks} weeks`);
   return { roadmap };

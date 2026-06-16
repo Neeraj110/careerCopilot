@@ -12,7 +12,7 @@ import {
   Sun,
   Moon,
 } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/providers/theme-provider-v2";
 
 const navLinks = [
   { label: "Features", href: "#features" },
@@ -53,7 +53,7 @@ export function Navbar() {
             <Compass className="h-4.5 w-4.5 text-white" />
           </div>
           <span className="font-heading text-lg font-bold tracking-tight text-foreground">
-            CareerPilot
+            CareerPilot AI
           </span>
         </Link>
 

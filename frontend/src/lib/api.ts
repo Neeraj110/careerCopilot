@@ -4,6 +4,7 @@ import { API_URL } from "./utils";
 
 interface FetchOptions extends RequestInit {
   skipAuth?: boolean;
+  timeout?: number; // ms, default 30000
 }
 
 export class ApiError extends Error {
@@ -20,7 +21,7 @@ async function baseFetch<T>(
   endpoint: string,
   options: FetchOptions = {},
 ): Promise<T> {
-  const { skipAuth, ...fetchOptions } = options;
+  const { skipAuth, timeout, ...fetchOptions } = options;
 
   const headers: Record<string, string> = {
     ...(fetchOptions.headers as Record<string, string>),
@@ -31,21 +32,31 @@ async function baseFetch<T>(
     headers["Content-Type"] = "application/json";
   }
 
-  const res = await fetch(`${API_URL}${endpoint}`, {
-    ...fetchOptions,
-    headers,
-    credentials: "include",
-  });
+  // Use AbortController for timeout management
+  const controller = new AbortController();
+  const timeoutMs = timeout || 30000; // Default 30s
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: "Request failed" }));
-    throw new ApiError(res.status, error.message || `Error ${res.status}`);
+  try {
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      ...fetchOptions,
+      headers,
+      credentials: "include",
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ message: "Request failed" }));
+      throw new ApiError(res.status, error.message || `Error ${res.status}`);
+    }
+
+    // Handle empty responses (204 No Content)
+    if (res.status === 204) return {} as T;
+
+    return res.json();
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  // Handle empty responses (204 No Content)
-  if (res.status === 204) return {} as T;
-
-  return res.json();
 }
 
 // ─── HTTP Methods ────────────────────────────────────────────────
@@ -86,4 +97,4 @@ export const api = {
     }),
 };
 
-// ─── SSE Stream Helper ───────────────────────────────────────────
+

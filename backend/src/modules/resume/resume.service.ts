@@ -5,11 +5,16 @@ import { AppError } from "../../middlewares/errorHandler";
 import { config } from "../../config";
 import { buildImprovementAgent } from "./agent/improvement.agent";
 
-const searchGroundedModel = new ChatMistralAI({
+const rawSearchGroundedModel = new ChatMistralAI({
   apiKey: config.mistralApiKey,
   model: "mistral-small-latest",
   temperature: 1,
 });
+
+const searchGroundedModel = {
+  invoke: (messages: any, options?: any) =>
+    rawSearchGroundedModel.invoke(messages, { ...options, response_format: { type: "json_object" } }),
+};
 
 export const checkATS = async (userId: string, documentId: string) => {
   const document = await prisma.document.findFirst({
@@ -79,8 +84,7 @@ export const checkATS = async (userId: string, documentId: string) => {
       : JSON.stringify(response.content);
 
   try {
-    const cleaned = content.replace(/```json|```/g, "").trim();
-    return JSON.parse(cleaned);
+    return JSON.parse(content);
   } catch {
     throw new AppError("Failed to parse ATS analysis", 500);
   }
@@ -161,8 +165,7 @@ export const jdMatch = async (
       : JSON.stringify(response.content);
 
   try {
-    const cleaned = content.replace(/```json|```/g, "").trim();
-    return JSON.parse(cleaned);
+    return JSON.parse(content);
   } catch {
     throw new AppError("Failed to parse JD match analysis", 500);
   }

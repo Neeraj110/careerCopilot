@@ -24,6 +24,7 @@ export const configurePassport = () => {
             user = await prisma.user.create({
               data: {
                 email,
+                name: profile.displayName,
                 googleId: profile.id,
               },
             });

@@ -16,12 +16,11 @@ export const requireAuth = (
     if (!token) {
       throw new AppError("Unauthorized: No token provided", 401);
     }
-    console.log("token",token);
+
     const decoded = verifyToken(token);
     if (!decoded) {
       throw new AppError("Unauthorized: Invalid token", 401);
     }
-    console.log("decoded",decoded);
     (req as any).user = decoded; // Attach user to request
     next();
   } catch (error) {

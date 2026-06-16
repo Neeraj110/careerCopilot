@@ -27,7 +27,7 @@ export const uploadDocument = catchAsync(async (
   }
 
   const document = await documentService.uploadDocument(
-    req.user!.id,
+    (req.user as any).id,
     title,
     file
   );
@@ -44,8 +44,9 @@ export const getUserDocuments = catchAsync(async (
   res: Response,
   next: NextFunction
 ) => {
+  const userId = (req.user as any).id;
   const documents = await documentService.getUserDocuments(
-    req.user!.id
+    userId
   );
   res.status(200).json({ status: "success", data: documents });
 });
@@ -57,7 +58,7 @@ export const getDocumentById = catchAsync(async (
 ) => {
   const { id } = getDocumentParamsSchema.parse(req.params);
   const document = await documentService.getDocumentById(
-    req.user!.id,
+    (req.user as any).id,
     id
   );
   res.status(200).json({ status: "success", data: document });
@@ -70,7 +71,7 @@ export const deleteDocument = catchAsync(async (
 ) => {
   const { id } = getDocumentParamsSchema.parse(req.params);
   const result = await documentService.deleteDocument(
-    req.user!.id,
+    (req.user as any).id,
     id
   );
   res.status(200).json({ status: "success", data: result });

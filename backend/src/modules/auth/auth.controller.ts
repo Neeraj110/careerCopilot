@@ -47,7 +47,7 @@ export const logout = catchAsync(
 
 export const getUserProfile = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const user = await authService.getUserProfile(req.user!.id);
+    const user = await authService.getUserProfile((req.user as any).id);
     res.status(200).json({ status: "success", data: user });
   },
 );

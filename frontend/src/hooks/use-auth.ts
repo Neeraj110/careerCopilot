@@ -12,9 +12,10 @@ interface AuthState {
   error: string | null;
 
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loadUser: () => Promise<void>;
+  updateProfile: (data: { name: string }) => Promise<void>;
   clearError: () => void;
 }
 
@@ -43,10 +44,10 @@ export const useAuth = create<AuthState>((set) => ({
     }
   },
 
-  register: async (email, password) => {
+  register: async (name, email, password) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await authApi.register({ email, password });
+      const res = await authApi.register({ name, email, password });
       set({
         user: res.data.user as unknown as User,
         isAuthenticated: true,
@@ -81,6 +82,15 @@ export const useAuth = create<AuthState>((set) => ({
       });
     } catch {
       set({ user: null, isAuthenticated: false, isCheckingAuth: false });
+    }
+  },
+
+  updateProfile: async (data: { name: string }) => {
+    try {
+      const res = await authApi.updateProfile(data);
+      set({ user: res.data as unknown as User });
+    } catch (err) {
+      throw err;
     }
   },
 
