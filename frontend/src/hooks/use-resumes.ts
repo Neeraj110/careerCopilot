@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { resumesApi } from "../lib/api/resumes-v2";
+import { documentsApi } from "../lib/api/documents";
 import { dashboardKey } from "./use-dashboard-v2";
 import { useToast } from "../providers/ui-provider";
 
@@ -47,7 +48,13 @@ export function useUploadResume() {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: ({ file, title }: { file: File; title?: string }) => resumesApi.upload(file, title),
+    mutationFn: async ({ file, title }: { file: File; title?: string }) => {
+      const res = await documentsApi.upload(file, title || file.name);
+      const doc = res.data;
+      const docId = doc?.id || (doc as any)?._id;
+      if (!docId) throw new Error("Document upload failed");
+      return resumesApi.createFromDocument(docId);
+    },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: resumeKeys.list() });
       qc.invalidateQueries({ queryKey: dashboardKey });

@@ -51,7 +51,7 @@ export function UploadDropzone({ onUploaded, compact = false }: UploadDropzonePr
       const data = await upload.mutateAsync({ file, title });
       setFile(null);
       setTitle("");
-      onUploaded?.(data.resume);
+      onUploaded?.((data as any).resume);
     } catch (e: any) {
       setErr(e.message || "Upload failed");
     }

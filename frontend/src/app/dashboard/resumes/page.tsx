@@ -32,7 +32,8 @@ export default function Resumes() {
     setIsCreating(true);
     try {
       const res = await resumesApi.createFromDocument(selectedDocId);
-      const newResumeId = res?.resume?.id || res?.resume?._id || res?.id || res?._id;
+      const r = res as any;
+      const newResumeId = r?.resume?.id || r?.resume?._id || r?.id || r?._id;
       if (newResumeId) {
         router.push(`/dashboard/resumes/${newResumeId}`);
       } else {
