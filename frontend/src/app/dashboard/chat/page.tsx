@@ -276,11 +276,11 @@ export default function ChatPage() {
       {/* Main Chat Area */}
       <Card padding="none" className="flex flex-1 flex-col overflow-hidden">
         {/* Chat Header */}
-        <div className="flex items-center justify-between border-b border-border p-4 bg-surface">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between border-b border-border p-3 sm:p-4 bg-surface gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             <Sheet open={isMobileChatOpen} onOpenChange={setIsMobileChatOpen}>
-              <SheetTrigger render={<Button variant="ghost" size="icon" className="lg:hidden" />}>
-                <Menu className="h-5 w-5" />
+              <SheetTrigger render={<Button variant="ghost" size="icon" className="lg:hidden shrink-0 h-8 w-8" />}>
+                <Menu className="h-4 w-4 sm:h-5 sm:w-5" />
               </SheetTrigger>
               <SheetContent side="left" className="w-[280px] p-0 flex flex-col">
                 <SheetTitle className="sr-only">Chat History</SheetTitle>
@@ -328,13 +328,13 @@ export default function ChatPage() {
                 </div>
               </SheetContent>
             </Sheet>
-            <h2 className="font-semibold truncate max-w-[200px]">{activeChat?.title || "New Chat"}</h2>
+            <h2 className="font-semibold text-sm sm:text-base truncate flex-1 min-w-0">{activeChat?.title || "New Chat"}</h2>
           </div>
           <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-transparent px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 max-w-[250px] cursor-pointer">
-              <FileText className="h-4 w-4 shrink-0" />
-              <span className="truncate">{activeDoc ? activeDoc.title : "No Document Selected"}</span>
-              <ChevronDown className="h-4 w-4 shrink-0" />
+            <DropdownMenuTrigger className="inline-flex shrink-0 h-8 sm:h-9 items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap rounded-md border border-input bg-transparent px-2 sm:px-3 text-xs sm:text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 max-w-[130px] sm:max-w-[250px] cursor-pointer">
+              <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+              <span className="truncate">{activeDoc ? activeDoc.title : "No Document"}</span>
+              <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[250px] bg-card/80 backdrop-blur-xl border-border/40">
               <DropdownMenuItem onClick={() => setActiveDocumentId(null)}>

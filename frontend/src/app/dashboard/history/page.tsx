@@ -96,7 +96,7 @@ export default function History() {
         description="Everything you've done across your resumes, in time order."
       />
 
-      <div className="inline-flex items-center gap-1 bg-surface border border-border p-1 rounded-full shadow-card flex-wrap">
+      <div className="flex items-center gap-1 bg-surface border border-border p-1 rounded-2xl sm:rounded-full shadow-card overflow-x-auto no-scrollbar w-full sm:w-fit">
         {FILTERS.map((f) => {
           const Icon = f.icon;
           const count = totals[f.key] ?? events.length;
@@ -106,7 +106,7 @@ export default function History() {
               key={f.key}
               onClick={() => setFilter(f.key)}
               className={cn(
-                "h-9 px-3.5 text-xs font-medium rounded-full transition-colors inline-flex items-center gap-1.5",
+                "h-9 px-3.5 shrink-0 text-xs font-medium rounded-full transition-colors inline-flex items-center gap-1.5",
                 isActive
                   ? "bg-ink text-bg"
                   : "text-ink-muted hover:text-ink"

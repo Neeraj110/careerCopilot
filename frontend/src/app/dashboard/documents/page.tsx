@@ -134,21 +134,21 @@ export default function DocumentsPage() {
       </Card>
 
       <Card className="border-border bg-surface shadow-card transition-all duration-300">
-        <CardHeader className="flex flex-row items-center justify-between pb-4">
-          <div>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 gap-4">
+          <div className="space-y-1">
             <CardTitle>Your Files</CardTitle>
             <CardDescription>Manage your {documents.length} uploaded files</CardDescription>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="relative">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-initial">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Search files..."
-                className="w-[200px] pl-9 lg:w-[300px] bg-surface-2 border-border focus:border-accent-v2"
+                className="w-full sm:w-[200px] lg:w-[300px] pl-9 bg-surface-2 border-border focus:border-accent-v2"
               />
             </div>
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" className="shrink-0">
               <Filter className="h-4 w-4" />
             </Button>
           </div>

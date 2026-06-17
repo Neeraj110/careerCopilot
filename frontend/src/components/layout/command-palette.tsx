@@ -7,7 +7,8 @@ import {
   Map, 
   BarChart3, 
   Layers, 
-  History 
+  History,
+  Target
 } from "lucide-react";
 import {
   CommandDialog,
@@ -52,6 +53,10 @@ export function CommandPalette({
             <CommandItem onSelect={() => runCommand(() => router.push("/dashboard/resumes"))}>
               <FileText className="mr-2 h-4 w-4" />
               <span>Resumes</span>
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => router.push("/dashboard/resume-match"))}>
+              <Target className="mr-2 h-4 w-4" />
+              <span>Resume Match</span>
             </CommandItem>
             <CommandItem onSelect={() => runCommand(() => router.push("/dashboard/chat"))}>
               <MessageSquare className="mr-2 h-4 w-4" />

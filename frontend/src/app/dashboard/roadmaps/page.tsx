@@ -267,7 +267,7 @@ export default function RoadmapsPage() {
                 transition={{ duration: 0.25 }}
               >
                 <Card className="max-h-[calc(100vh-200px)] overflow-y-auto bg-card/45 backdrop-blur-md border border-border/40 shadow-xl">
-                  <CardHeader className="sticky top-0 bg-background/90 backdrop-blur-md border-b border-border/30 z-10 py-4">
+                  <CardHeader className="border-b border-border/30 py-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div>
                         <CardTitle className="text-xl">
