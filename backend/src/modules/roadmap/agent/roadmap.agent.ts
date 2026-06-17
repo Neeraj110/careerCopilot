@@ -46,7 +46,6 @@ const rawLlm = new ChatMistralAI({
   model: "mistral-large-latest",
   temperature: 0.3,
   maxRetries: 2,
-  timeout: 300000,
 });
 
 const tavily = new TavilySearch({
