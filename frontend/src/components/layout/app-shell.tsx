@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Sidebar } from "./sidebar";
+import { Sidebar, MobileSidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { CommandPalette } from "./command-palette";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
@@ -32,13 +33,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setPaletteOpen(false);
+    setMobileMenuOpen(false);
   }, [pathname]);
 
   return (
     <div className="min-h-screen flex bg-bg text-ink">
       <Sidebar />
+      <MobileSidebar open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
       <main className="flex-1 px-6 md:px-8 py-6 max-w-[1600px] mx-auto w-full relative">
-        <Topbar onOpenPalette={openPalette} />
+        <Topbar onOpenPalette={openPalette} onOpenMobileMenu={() => setMobileMenuOpen(true)} />
         <AnimatePresence mode="wait">
           <motion.div
             key={pathname}

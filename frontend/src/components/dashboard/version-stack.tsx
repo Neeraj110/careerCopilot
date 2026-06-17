@@ -162,7 +162,7 @@ function TrajectoryChart({ versions }: { versions: any[] }) {
         </div>
       </div>
       <div className="h-[110px] -mx-1">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
           <AreaChart data={data} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
             <defs>
               <linearGradient id="vsTrajGrad" x1="0" y1="0" x2="0" y2="1">
@@ -224,7 +224,7 @@ export function VersionStack({ versions, resumeId, resumeTitle }: any) {
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-5 items-stretch">
         {/* Version progression */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar pb-2 -mx-1 px-1">
           {visible.map((v: any, i: number) => {
             const prev = visible[i - 1];
             const delta = prev ? v.score - prev.score : null;

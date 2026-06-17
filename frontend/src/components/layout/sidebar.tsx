@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   LayoutGrid,
   FileText,
@@ -14,6 +15,7 @@ import {
   FolderOpen,
   Map,
   Target,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -177,5 +179,92 @@ export function Sidebar() {
         </div>
       </div>
     </aside>
+  );
+}
+
+function MobileNavItem({ to, icon: Icon, label, onClick }: any) {
+  const pathname = usePathname();
+  const isActive = to ? pathname === to || pathname.startsWith(`${to}/`) : false;
+
+  const inner = (
+    <div
+      className={cn(
+        "flex items-center h-12 w-full rounded-2xl px-4 transition-colors",
+        isActive
+          ? "bg-[var(--v2-ink)] text-[var(--v2-bg)] shadow-card"
+          : "text-[var(--v2-ink-muted)] hover:bg-surface-2 hover:text-[var(--v2-ink)]"
+      )}
+    >
+      <Icon size={18} />
+      <span className="ml-3 text-sm font-medium">{label}</span>
+    </div>
+  );
+
+  if (to) {
+    return (
+      <Link href={to} onClick={onClick} className="block w-full">
+        {inner}
+      </Link>
+    );
+  }
+
+  return (
+    <button onClick={onClick} className="block w-full text-left">
+      {inner}
+    </button>
+  );
+}
+
+export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { user, logout } = useAuth();
+  
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          key="overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 bg-[var(--v2-ink)]/40 z-[100] md:hidden backdrop-blur-sm"
+        />
+      )}
+      {open && (
+        <motion.div
+          key="sidebar"
+          initial={{ x: "-100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "-100%" }}
+          transition={{ type: "spring", bounce: 0, duration: 0.3 }}
+          className="fixed inset-y-0 left-0 w-[280px] bg-surface border-r border-border shadow-2xl z-[101] md:hidden flex flex-col py-6 px-4"
+        >
+          <div className="w-full flex justify-between items-center mb-8 px-2">
+            <div className="flex items-center">
+              <div className="h-8 w-8 flex items-center justify-center shrink-0">
+                <AILogo />
+              </div>
+              <span className="ml-2 font-display text-base font-semibold text-[var(--v2-ink)]">
+                CareerPilot AI
+              </span>
+            </div>
+            <button onClick={onClose} className="p-2 text-[var(--v2-ink-muted)] hover:bg-surface-2 rounded-full transition-colors">
+              <X size={20} />
+            </button>
+          </div>
+          
+          <nav className="flex flex-col gap-1 overflow-y-auto no-scrollbar w-full flex-1">
+            {NAV.map((item) => (
+              <MobileNavItem key={item.to} to={item.to} icon={item.icon} label={item.label} onClick={onClose} />
+            ))}
+          </nav>
+
+          <div className="flex flex-col gap-1 w-full mt-4 border-t border-border pt-4">
+            <MobileNavItem icon={Settings} label="Settings" to="/dashboard/settings" onClick={onClose} />
+            <MobileNavItem icon={LogOut} label="Log out" onClick={() => { logout(); onClose(); }} />
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

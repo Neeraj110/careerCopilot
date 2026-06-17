@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Sun, Moon } from "lucide-react";
+import { Search, Sun, Moon, Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { IconButton } from "@/components/ui/icon-button";
 import { useTheme } from "@/providers/theme-provider-v2";
@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { NotificationsPopover } from "./notifications-popover";
 import { useState, useEffect } from "react";
 
-export function Topbar({ onOpenPalette }: { onOpenPalette?: () => void }) {
+export function Topbar({ onOpenPalette, onOpenMobileMenu }: { onOpenPalette?: () => void; onOpenMobileMenu?: () => void }) {
   const { theme, toggle } = useTheme();
   const { user } = useAuth();
   const firstName = user?.name?.split(" ")[0] || "there";
@@ -56,6 +56,14 @@ export function Topbar({ onOpenPalette }: { onOpenPalette?: () => void }) {
           className="lg:hidden"
         >
           <Search size={16} />
+        </IconButton>
+
+        <IconButton
+          onClick={onOpenMobileMenu}
+          title="Menu"
+          className="md:hidden"
+        >
+          <Menu size={16} />
         </IconButton>
 
         <IconButton onClick={toggle} title="Toggle theme">

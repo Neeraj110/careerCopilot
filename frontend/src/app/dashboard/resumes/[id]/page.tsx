@@ -152,7 +152,7 @@ export default function ResumeDetail() {
             </Button>
             <Button
               variant="outline"
-              onClick={() => router.push(`/dashboard/resumes/${id}/export`)}
+              onClick={() => router.push(`/dashboard/resumes/${id}/pdf`)}
             >
               <Download size={14} /> Export PDF
             </Button>

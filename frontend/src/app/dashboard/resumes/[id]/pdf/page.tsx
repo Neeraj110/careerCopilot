@@ -164,13 +164,20 @@ export default function ExportPage() {
 
       {/* PDF Preview */}
       {isReady && (
-        <Card className="overflow-hidden p-0">
-          <PdfPreview
-            user={user}
-            version={version}
-            title={resume?.title || "Resume"}
-          />
-        </Card>
+        <>
+          <Card className="overflow-hidden p-0 hidden md:block">
+            <PdfPreview
+              user={user}
+              version={version}
+              title={resume?.title || "Resume"}
+            />
+          </Card>
+          <Card className="md:hidden flex flex-col items-center justify-center p-8 text-center text-ink-muted">
+            <FileText size={40} className="mb-4 opacity-30" strokeWidth={1.5} />
+            <p className="text-sm mb-2 font-medium text-ink">Preview not available on mobile</p>
+            <p className="text-xs">Please use the Download button above to view your resume.</p>
+          </Card>
+        </>
       )}
     </div>
   );
