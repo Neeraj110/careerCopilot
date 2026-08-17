@@ -110,8 +110,7 @@ NEXT_PUBLIC_API_URL="http://localhost:8000"
 
 ## 📂 Architecture & Structure
 
-```
-smart-desk-sql/
+CareerCopilot/
 ├── backend/                # Express & Prisma Backend Server
 │   ├── prisma/             # Schema definitions and seed scripts
 │   ├── src/                # API routes, controllers, and AI workflows
