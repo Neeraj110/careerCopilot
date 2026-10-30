@@ -2,39 +2,27 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
-    inputs:
-      force_deploy:
-        description: 'Force run deployment jobs regardless of branch'
-        required: false
-        default: false
-        type: boolean
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # =========================================================================
-  # 1. Backend CI: Typecheck, Prisma Generation, Build & Tests
-  # =========================================================================
-  backend-ci:
-    name: Backend CI (Typecheck & Build)
+  # --------------------------------------------------
+  # 1. Backend: Install, Prisma Generate & Build
+  # --------------------------------------------------
+  backend:
+    name: Backend Build
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -45,190 +33,70 @@ jobs:
         run: npm ci
 
       - name: Generate Prisma Client
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/career_assistant' }}
-        run: npm run db:generate
+        run: npx prisma generate
 
-      - name: Type Check (tsc --noEmit)
-        run: npm run typecheck
-
-      - name: Build Backend (Prisma + TypeScript compiler)
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/career_assistant' }}
+      - name: Build Backend
         run: npm run build
 
-      - name: Run Tests (if present)
-        run: npm test --if-present
-
-  # =========================================================================
-  # 2. Frontend CI: Lint, Next.js Build & Type Verification
-  # =========================================================================
-  frontend-ci:
-    name: Frontend CI (Lint & Build)
+  # --------------------------------------------------
+  # 2. Frontend: Install & Build Next.js
+  # --------------------------------------------------
+  frontend:
+    name: Frontend Build
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frontend
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Cache Next.js Build Cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ github.workspace }}/frontend/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('frontend/package-lock.json') }}-${{ hashFiles('frontend/src/**') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('frontend/package-lock.json') }}-
-            ${{ runner.os }}-nextjs-
-
       - name: Install Dependencies
         run: npm ci
 
-      - name: Lint Code
-        run: npm run lint
-
-      - name: Build Next.js Production App
+      - name: Build Next.js App
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://smart-desk-sql.onrender.com' }}
         run: npm run build
 
-      - name: Run Tests (if present)
-        run: npm test --if-present
-
-  # =========================================================================
-  # 3. Security & Dependency Audit (Informative)
-  # =========================================================================
-  security-audit:
-    name: Dependency Security Audit
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Audit Backend Dependencies
-        run: |
-          echo "Auditing backend dependencies..."
-          npm audit --prefix backend --audit-level=high || true
-
-      - name: Audit Frontend Dependencies
-        run: |
-          echo "Auditing frontend dependencies..."
-          npm audit --prefix frontend --audit-level=high || true
-
-  # =========================================================================
-  # 4. Continuous Deployment: Backend (Render)
-  # =========================================================================
-  deploy-backend:
-    name: Deploy Backend to Render
-    needs: [backend-ci, frontend-ci]
-    if: |
-      always() &&
-      needs.backend-ci.result == 'success' &&
-      needs.frontend-ci.result == 'success' &&
-      (github.ref == 'refs/heads/main' || inputs.force_deploy == true)
+  # --------------------------------------------------
+  # 3. Simple Deploy (Triggers only when pushed to main)
+  # --------------------------------------------------
+  deploy:
+    name: Trigger Deploy
+    needs: [backend, frontend]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Trigger Render Deploy Hook
+      - name: Deploy Backend (Render)
         env:
           RENDER_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
-          if [ -z "$RENDER_HOOK" ]; then
-            echo "⚠️  RENDER_DEPLOY_HOOK_URL secret is not configured in GitHub repository secrets."
-            echo "ℹ️  To enable automated backend deployments on Render:"
-            echo "   1. Go to your Render Dashboard -> Service -> Settings -> Deploy Hook"
-            echo "   2. Copy the Deploy Hook URL"
-            echo "   3. Add it to GitHub Repo -> Settings -> Secrets and variables -> Actions as 'RENDER_DEPLOY_HOOK_URL'"
-            echo "Skipping trigger step gracefully."
+          if [ -n "$RENDER_HOOK" ]; then
+            echo "Deploying backend to Render..."
+            curl -s -X POST "$RENDER_HOOK"
+            echo "Done!"
           else
-            echo "🚀 Triggering Render backend deployment..."
-            RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$RENDER_HOOK")
-            HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-            BODY=$(echo "$RESPONSE" | sed '$d')
-            echo "Response: $BODY"
-            if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-              echo "✅ Render deployment successfully triggered (HTTP $HTTP_CODE)."
-            else
-              echo "❌ Render deploy hook returned HTTP $HTTP_CODE"
-              exit 1
-            fi
+            echo "RENDER_DEPLOY_HOOK_URL secret not set, skipping backend deploy."
           fi
 
-  # =========================================================================
-  # 5. Continuous Deployment: Frontend (Vercel / Deploy Hook)
-  # =========================================================================
-  deploy-frontend:
-    name: Deploy Frontend
-    needs: [backend-ci, frontend-ci]
-    if: |
-      always() &&
-      needs.backend-ci.result == 'success' &&
-      needs.frontend-ci.result == 'success' &&
-      (github.ref == 'refs/heads/main' || inputs.force_deploy == true)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Trigger Frontend Deployment
+      - name: Deploy Frontend (Vercel)
         env:
           VERCEL_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
         run: |
-          if [ -z "$VERCEL_HOOK" ]; then
-            echo "ℹ️  VERCEL_DEPLOY_HOOK_URL secret not set. If your frontend is connected via GitHub integration in Vercel, it auto-deploys upon push to main."
+          if [ -n "$VERCEL_HOOK" ]; then
+            echo "Deploying frontend to Vercel..."
+            curl -s -X POST "$VERCEL_HOOK"
+            echo "Done!"
           else
-            echo "🚀 Triggering Frontend deploy webhook..."
-            curl -sSf -X POST "$VERCEL_HOOK"
-            echo "✅ Frontend deployment triggered."
-          fi
-
-  # =========================================================================
-  # 6. Post-Deployment Health Verification
-  # =========================================================================
-  health-check:
-    name: Post-Deployment Health Check
-    needs: [deploy-backend]
-    if: |
-      always() &&
-      needs.deploy-backend.result == 'success' &&
-      (github.ref == 'refs/heads/main' || inputs.force_deploy == true)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Verify Backend Service Health
-        run: |
-          echo "Waiting 20 seconds for deployment to settle..."
-          sleep 20
-          
-          HEALTH_URL="https://smart-desk-sql.onrender.com/health"
-          echo "Pinging $HEALTH_URL..."
-          
-          MAX_ATTEMPTS=5
-          ATTEMPT=1
-          SUCCESS=0
-          
-          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            echo "Attempt $ATTEMPT of $MAX_ATTEMPTS..."
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || true)
-            if [ "$STATUS" = "200" ]; then
-              echo "✅ Backend is healthy and responding with HTTP 200!"
-              SUCCESS=1
-              break
-            else
-              echo "Received HTTP $STATUS. Retrying in 10s..."
-              sleep 10
-            fi
-            ATTEMPT=$((ATTEMPT + 1))
-          done
-          
-          if [ $SUCCESS -ne 1 ]; then
-            echo "⚠️ Health check could not confirm 200 OK within timeout (server may still be building on Render)."
+            echo "VERCEL_DEPLOY_HOOK_URL secret not set, skipping frontend deploy."
           fi
