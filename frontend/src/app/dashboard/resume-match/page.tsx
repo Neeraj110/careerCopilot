@@ -33,6 +33,7 @@ export default function ResumeMatchPage() {
   
   const [isImproving, setIsImproving] = useState(false);
   const [improveResult, setImproveResult] = useState<ImproveResult | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     documentsApi.getAll()
@@ -45,11 +46,13 @@ export default function ResumeMatchPage() {
     setIsAnalyzing(true);
     setResult(null);
     setImproveResult(null);
+    setErrorMessage(null);
     try {
       const res = await resumeApi.jdMatch(selectedDocId, jd);
       setResult(res.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to analyze jd match", err);
+      setErrorMessage(err?.message || "Failed to analyze match against Job Description. Please try again.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -60,11 +63,13 @@ export default function ResumeMatchPage() {
     setIsImproving(true);
     setResult(null);
     setImproveResult(null);
+    setErrorMessage(null);
     try {
       const res = await resumeApi.improve(selectedDocId, jd);
       setImproveResult(res.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to improve resume", err);
+      setErrorMessage(err?.message || "Failed to auto-improve resume. Please try again.");
     } finally {
       setIsImproving(false);
     }
@@ -125,6 +130,13 @@ export default function ResumeMatchPage() {
                 onChange={(e) => setJd(e.target.value)}
               />
             </div>
+
+            {errorMessage && (
+              <div className="flex items-center gap-2 p-3 text-sm rounded-md bg-red-500/10 text-red-500 border border-red-500/20">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
 
             <div className="flex flex-col sm:flex-row gap-3 w-full">
               <Button 

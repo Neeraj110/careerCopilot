@@ -16,6 +16,7 @@ router.delete("/:id", ctrl.remove);
 
 // ── Versions ───────────────────────────────────────────────────────────
 router.get("/:id/versions/:vid", ctrl.getVersion);
+router.get("/:id/versions/:vid/latex", ctrl.getLatex);
 router.get("/:id/diff", ctrl.diff);
 
 // ── Analysis ───────────────────────────────────────────────────────────

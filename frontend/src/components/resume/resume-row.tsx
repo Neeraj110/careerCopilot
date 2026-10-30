@@ -6,15 +6,26 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { relativeTime } from "@/lib/utils";
 import { useDeleteResume } from "@/hooks/use-resumes";
+import { useToast } from "@/providers/ui-provider";
 
 export function ResumeRow({ resume }: { resume: any }) {
   const router = useRouter();
   const del = useDeleteResume();
+  const { toast } = useToast();
 
   async function remove(e: React.MouseEvent) {
     e.stopPropagation();
-    if (!confirm("Delete this resume and all its versions?")) return;
-    await del.mutateAsync(resume.id);
+    toast.info(
+      "Delete resume?",
+      "This removes the resume and all its versions.",
+      {
+        duration: 0,
+        action: {
+          label: "Delete",
+          onClick: () => del.mutate(resume.id),
+        },
+      },
+    );
   }
 
   return (

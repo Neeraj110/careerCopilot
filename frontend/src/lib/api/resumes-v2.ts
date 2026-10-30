@@ -94,6 +94,11 @@ export const resumesApi = {
       .get<any>(`/resumes/${id}/versions/${versionId}`)
       .then((r) => ({ version: normalizeVersion(r.data?.version ?? r.version) })),
 
+  getLatex: (id: string, versionId: string) =>
+    api
+      .get<any>(`/resumes/${id}/versions/${versionId}/latex`)
+      .then((r) => r.data ?? r),
+
   createFromDocument: (documentId: string) =>
     api
       .post<any>("/resumes", { documentId })

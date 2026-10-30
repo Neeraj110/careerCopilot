@@ -2,7 +2,7 @@ import { Response } from "express";
 import { prisma } from "../../infrastructure/prisma";
 import { embedText } from "../../infrastructure/embeddings";
 import { AppError } from "../../middlewares/errorHandler";
-import { ChatMistralAI } from "@langchain/mistralai";
+import { createGeminiModel, recordAiCall } from "../../infrastructure/ai";
 import {
   HumanMessage,
   SystemMessage,
@@ -15,19 +15,9 @@ import {
   buildGeneralPrompt,
 } from "./chat.prompts";// ─── Gemini Chat Model ───────────────────────────────────────────
 
-const ragModel = new ChatMistralAI({
-  apiKey: config.mistralApiKey,
-  model: "mistral-large-latest",
-  temperature: 0.3,
-  maxRetries: 2,
-});
+const ragModel = createGeminiModel(config.geminiApiKey2);
 
-const searchGroundedModel = new ChatMistralAI({
-  apiKey: config.mistralApiKey,
-  model: "mistral-large-latest",
-  temperature: 1,
-  maxRetries: 2,
-});
+const searchGroundedModel = createGeminiModel(config.geminiApiKey2);
 
 
 
@@ -44,7 +34,9 @@ const buildHistory = (messages: any[]): (HumanMessage | AIMessage)[] => {
 const generateResponse = async (
   model: any,
   messages: (SystemMessage | HumanMessage | AIMessage)[],
+  operation: string,
 ): Promise<string> => {
+  recordAiCall("gemini-general", operation);
   const response = await model.invoke(messages);
   return typeof response.content === "string"
     ? response.content
@@ -85,20 +77,58 @@ export const createChat = async (
   });
 };
 
+export const updateChat = async (
+  userId: string,
+  chatId: string,
+  data: { documentId?: string | null; title?: string },
+) => {
+  const chat = await prisma.chat.findFirst({
+    where: { id: chatId, userId },
+  });
+  if (!chat) throw new AppError("Chat not found", 404);
+
+  if (data.documentId) {
+    const document = await prisma.document.findFirst({
+      where: { id: data.documentId, userId },
+    });
+    if (!document) {
+      throw new AppError("Document not found", 404);
+    }
+  }
+
+  return prisma.chat.update({
+    where: { id: chatId },
+    data: {
+      ...(data.documentId !== undefined ? { documentId: data.documentId } : {}),
+      ...(data.title !== undefined ? { title: data.title } : {}),
+    },
+  });
+};
+
 // ─── Send Message + Get AI Response (RAG) ────────────────────────
 export const sendMessage = async (
   userId: string,
   chatId: string,
   userMessage: string,
+  documentId?: string | null,
 ) => {
   // 1. Verify chat belongs to user
-  const chat = await prisma.chat.findFirst({
+  let chat = await prisma.chat.findFirst({
     where: { id: chatId, userId },
     include: {
       messages: { orderBy: { createdAt: "asc" }, take: 20 },
     },
   });
   if (!chat) throw new AppError("Chat not found", 404);
+
+  // If documentId is explicitly provided and differs from stored, update it
+  if (documentId !== undefined && documentId !== chat.documentId) {
+    await prisma.chat.update({
+      where: { id: chatId },
+      data: { documentId },
+    });
+    chat.documentId = documentId;
+  }
 
   // 2. Save user message
   await prisma.message.create({
@@ -113,28 +143,61 @@ export const sendMessage = async (
 
   // ─── Case 1: Document chat ───────────────────────────────────
   if (chat.documentId) {
-    const queryEmbedding = await embedText(userMessage);
-    const vectorStr = `[${queryEmbedding.join(",")}]`;
+    let contextChunks: string[] = [];
+    let sourceMetadatas: any[] = [];
 
-    const similarChunks = await prisma.$queryRaw<Array<{
-      id: string;
-      content: string;
-      metadata: any;
-    }>>`
-      SELECT id, content, metadata
-      FROM "Chunk"
-      WHERE "documentId" = ${chat.documentId}
-      ORDER BY embedding <=> ${vectorStr}::vector
-      LIMIT 5
-    `;
+    // Attempt vector similarity search
+    try {
+      const queryEmbedding = await embedText(userMessage);
+      const vectorStr = `[${queryEmbedding.join(",")}]`;
 
-    const contextChunks = similarChunks.map((c) => c.content);
-    const sourceMetadatas = similarChunks.map((c) => ({
-      documentId: chat.documentId,
-      chunkId: c.id,
-      chunkIndex: c.metadata?.chunkIndex,
-    }));
-    
+      const similarChunks = await prisma.$queryRaw<Array<{
+        id: string;
+        content: string;
+        metadata: any;
+      }>>`
+        SELECT id, content, metadata
+        FROM "Chunk"
+        WHERE "documentId" = ${chat.documentId}
+        ORDER BY embedding <=> ${vectorStr}::vector
+        LIMIT 6
+      `;
+
+      if (similarChunks && similarChunks.length > 0) {
+        contextChunks = similarChunks.map((c) => c.content);
+        sourceMetadatas = similarChunks.map((c) => ({
+          documentId: chat.documentId,
+          chunkId: c.id,
+          chunkIndex: c.metadata?.chunkIndex,
+        }));
+      }
+    } catch (embedError) {
+      console.warn("[Chat RAG] Vector search failed, falling back to direct chunks:", embedError);
+    }
+
+    // Fallback: If vector search returned nothing or failed, load all chunks for this document
+    if (contextChunks.length === 0) {
+      const allChunks = await prisma.chunk.findMany({
+        where: { documentId: chat.documentId },
+        take: 12,
+      });
+
+      if (allChunks.length > 0) {
+        allChunks.sort((a, b) => {
+          const aIdx = (a.metadata as any)?.chunkIndex ?? 0;
+          const bIdx = (b.metadata as any)?.chunkIndex ?? 0;
+          return aIdx - bIdx;
+        });
+
+        contextChunks = allChunks.map((c) => c.content);
+        sourceMetadatas = allChunks.map((c) => ({
+          documentId: chat.documentId,
+          chunkId: c.id,
+          chunkIndex: (c.metadata as any)?.chunkIndex,
+        }));
+      }
+    }
+
     const contextText = contextChunks.filter(Boolean).join("\n\n---\n\n");
     const hasContext = contextText.trim().length > 0;
 
@@ -147,19 +210,33 @@ export const sendMessage = async (
           ...history,
           new HumanMessage(userMessage),
         ],
+        "chat.document-rag",
       );
 
       sources = sourceMetadatas;
     } else {
-      // No document context — fall back to web search
-      aiContent = await generateResponse(
-        searchGroundedModel,
-        [
-          new SystemMessage(buildSearchFallbackPrompt()),
-          ...history,
-          new HumanMessage(userMessage),
-        ],
-      );
+      // Check document processing state
+      const doc = await prisma.document.findUnique({
+        where: { id: chat.documentId },
+        select: { title: true, status: true },
+      });
+
+      if (doc && doc.status !== "COMPLETED") {
+        aiContent = `The document "${doc.title}" is currently still processing (${doc.status}). Please wait a few seconds and try again once processing is complete.`;
+      } else {
+        // Fall back to general assistant with context note
+        aiContent = await generateResponse(
+          searchGroundedModel,
+          [
+            new SystemMessage(
+              `You are an expert career assistant. The user selected document "${doc?.title || 'Unknown'}", but no text could be extracted from it. Answer their question as helpfully as possible and politely suggest re-uploading the document if they need document-specific analysis.`
+            ),
+            ...history,
+            new HumanMessage(userMessage),
+          ],
+          "chat.search-fallback",
+        );
+      }
     }
   }
   // ─── Case 2: General chat ─────────────────────────────────────
@@ -171,6 +248,7 @@ export const sendMessage = async (
         ...history,
         new HumanMessage(userMessage),
       ],
+      "chat.general",
     );
   }
 

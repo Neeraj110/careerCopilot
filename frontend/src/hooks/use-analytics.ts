@@ -14,10 +14,3 @@ export function useAllVersions() {
     queryFn: () => analyticsApi.versions(),
   });
 }
-
-export function useHistory() {
-  return useQuery({
-    queryKey: ["analytics", "history"],
-    queryFn: () => analyticsApi.history(),
-  });
-}

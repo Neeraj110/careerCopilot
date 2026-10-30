@@ -24,12 +24,14 @@ import {
 import { useDocumentsList, useUploadDocument, useDeleteDocument } from "@/hooks/use-documents";
 import type { Document } from "@/types";
 import { motion } from "framer-motion";
+import { useToast } from "@/providers/ui-provider";
 
 export default function DocumentsPage() {
   const [isDragging, setIsDragging] = useState(false);
   const { data: documents = [], isLoading } = useDocumentsList();
   const uploadDoc = useUploadDocument();
   const deleteDoc = useDeleteDocument();
+  const { toast } = useToast();
   const isUploading = uploadDoc.isPending;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -215,9 +217,17 @@ export default function DocumentsPage() {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => {
-                                if (confirm(`Are you sure you want to delete ${doc.title}?`)) {
-                                  deleteDoc.mutate(doc.id);
-                                }
+                                toast.info(
+                                  "Delete document?",
+                                  `${doc.title} will be permanently removed.`,
+                                  {
+                                    duration: 0,
+                                    action: {
+                                      label: "Delete",
+                                      onClick: () => deleteDoc.mutate(doc.id),
+                                    },
+                                  },
+                                );
                               }}
                               className="text-danger cursor-pointer font-medium"
                               disabled={deleteDoc.isPending}

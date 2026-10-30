@@ -33,6 +33,11 @@ export const getVersion = catchAsync(async (req: Request, res: Response) => {
   res.json({ status: "success", data: { version: data } });
 });
 
+export const getLatex = catchAsync(async (req: Request, res: Response) => {
+  const data = await service.getResumeLatex(req.user!.id, req.params.id as string, req.params.vid as string);
+  res.json({ status: "success", data });
+});
+
 export const analyze = catchAsync(async (req: Request, res: Response) => {
   const { versionId, targetRole } = analyzeResumeSchema.parse(req.body);
   const analysis = await service.analyzeVersion(req.user!.id, req.params.id as string, versionId, targetRole);
@@ -67,11 +72,6 @@ export const insights = catchAsync(async (req: Request, res: Response) => {
 
 export const allVersions = catchAsync(async (req: Request, res: Response) => {
   const data = await service.getAllVersions(req.user!.id);
-  res.json({ status: "success", data });
-});
-
-export const history = catchAsync(async (req: Request, res: Response) => {
-  const data = await service.getHistory(req.user!.id);
   res.json({ status: "success", data });
 });
 

@@ -54,6 +54,8 @@ model Document {
   chats     Chat[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  @@index([userId, createdAt])
 }
 
 model Chunk {
@@ -64,6 +66,8 @@ model Chunk {
   metadata   Json?
   embedding  Unsupported("vector(1024)")?
   createdAt  DateTime                     @default(now())
+
+  @@index([documentId])
 }
 
 model Chat {
@@ -75,6 +79,9 @@ model Chat {
   title      String?
   messages   Message[]
   createdAt  DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([documentId])
 }
 
 model Message {
@@ -85,6 +92,8 @@ model Message {
   content   String
   sources   Json?
   createdAt DateTime @default(now())
+
+  @@index([chatId, createdAt])
 }
 
 // ── Resume Versioning ──────────────────────────────────────────────────
@@ -99,6 +108,8 @@ model Resume {
   analyses         Analysis[]
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
+
+  @@index([userId, updatedAt])
 }
 
 model ResumeVersion {
@@ -108,9 +119,9 @@ model ResumeVersion {
   label          String // "V1", "V2", etc.
   sourceType     String     @default("upload") // "upload" | "rewrite"
   parsedSections Json? // { basics, summary, experience, education, skills, projects, certifications, languages, interests }
-  rawText        String?
-  analyses       Analysis[]
-  createdAt      DateTime   @default(now())
+  rawText          String?
+  analyses         Analysis[]
+  createdAt        DateTime   @default(now())
 }
 
 model Analysis {

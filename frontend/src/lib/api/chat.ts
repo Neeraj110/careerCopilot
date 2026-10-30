@@ -13,9 +13,18 @@ export const chatApi = {
   delete: (chatId: string) =>
     api.delete<{ message: string }>(`/chats/${chatId}`),
 
+  update: (
+    chatId: string,
+    data: { documentId?: string | null; title?: string },
+  ) => api.patch<ApiResponse<Chat>>(`/chats/${chatId}`, data),
+
   sendMessage: (
     chatId: string,
     message: string,
+    documentId?: string | null,
   ) =>
-    api.post<ApiResponse<Message>>(`/chats/${chatId}/message`, { content: message }),
+    api.post<ApiResponse<Message>>(`/chats/${chatId}/message`, {
+      content: message,
+      documentId,
+    }),
 };

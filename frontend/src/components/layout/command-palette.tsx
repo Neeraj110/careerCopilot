@@ -7,7 +7,6 @@ import {
   Map, 
   BarChart3, 
   Layers, 
-  History,
   Target
 } from "lucide-react";
 import {
@@ -77,10 +76,6 @@ export function CommandPalette({
             <CommandItem onSelect={() => runCommand(() => router.push("/dashboard/versions"))}>
               <Layers className="mr-2 h-4 w-4" />
               <span>Versions</span>
-            </CommandItem>
-            <CommandItem onSelect={() => runCommand(() => router.push("/dashboard/history"))}>
-              <History className="mr-2 h-4 w-4" />
-              <span>History</span>
             </CommandItem>
           </CommandGroup>
         </CommandList>

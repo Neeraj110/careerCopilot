@@ -6,9 +6,9 @@ export const config = {
   databaseUrl: process.env.DATABASE_URL || "",
   jwtSecret: process.env.JWT_SECRET || "secret",
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "1d",
-  groqApiKey: process.env.GROQ_API_KEY || "",
   geminiApiKey: process.env.GEMINI_API_KEY || "",
-  mistralApiKey: process.env.MISTRAL_API_KEY || "",
+  geminiApiKey2: process.env.GEMINI_API_KEY_2 || "",
+  geminiModel: process.env.GEMINI_MODEL || "gemini-3.5-flash-lite",
   tavilyApiKey: process.env.TAVILY_API_KEY || "",
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME || "",

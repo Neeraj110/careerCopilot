@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Map, Clock, Trophy, Play, Circle, Loader2, ArrowRight, Plus, History, BookOpen } from "lucide-react";
+import { Map, Clock, Trophy, Play, Circle, Loader2, ArrowRight, Plus, BookOpen } from "lucide-react";
 import { 
   Card, 
   CardContent, 
@@ -124,7 +124,7 @@ export default function RoadmapsPage() {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar history panel */}
+        {/* Sidebar saved roadmaps panel */}
         <div className="lg:col-span-1 space-y-4">
           <Button 
             onClick={startNewRoadmap} 
@@ -138,8 +138,8 @@ export default function RoadmapsPage() {
           <Card className="h-[calc(100vh-270px)] flex flex-col bg-card/40 backdrop-blur-md border border-border/40 shadow-md">
             <CardHeader className="py-4 px-4 border-b border-border/50">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <History className="h-4.5 w-4.5 text-muted-foreground" />
-                History
+                <BookOpen className="h-4.5 w-4.5 text-muted-foreground" />
+                Saved Paths
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 overflow-y-auto p-2 space-y-1">

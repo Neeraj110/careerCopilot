@@ -8,7 +8,6 @@ import {
   FileText,
   BarChart3,
   Layers,
-  History,
   Settings,
   LogOut,
   MessageSquare,
@@ -30,7 +29,6 @@ const NAV = [
   { to: "/dashboard/roadmaps", icon: Map, label: "Roadmaps" },
   { to: "/dashboard/insights", icon: BarChart3, label: "Insights" },
   { to: "/dashboard/versions", icon: Layers, label: "Versions" },
-  { to: "/dashboard/history", icon: History, label: "History" },
 ];
 
 const ROW_BASE =

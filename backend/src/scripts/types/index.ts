@@ -4,8 +4,8 @@
 // 1. User & Auth Types
 // ==========================================
 export enum Role {
-  USER = 'USER',
-  ADMIN = 'ADMIN',
+  USER = "USER",
+  ADMIN = "ADMIN",
 }
 
 export interface UserProfile {
@@ -13,7 +13,7 @@ export interface UserProfile {
   lastName?: string;
   headline?: string;
   skills?: string[];
-  experienceLevel?: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert';
+  experienceLevel?: "Beginner" | "Intermediate" | "Advanced" | "Expert";
 }
 
 export interface User {
@@ -26,7 +26,7 @@ export interface User {
 }
 
 export interface AuthResponse {
-  user: Pick<User, 'id' | 'email' | 'role'>;
+  user: Pick<User, "id" | "email" | "role">;
   token: string;
 }
 
@@ -34,16 +34,16 @@ export interface AuthResponse {
 // 2. Document & Vector Types
 // ==========================================
 export enum DocType {
-  PDF = 'PDF',
-  DOCX = 'DOCX',
-  TXT = 'TXT',
+  PDF = "PDF",
+  DOCX = "DOCX",
+  TXT = "TXT",
 }
 
 export enum DocStatus {
-  PENDING = 'PENDING',
-  PROCESSING = 'PROCESSING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
+  PENDING = "PENDING",
+  PROCESSING = "PROCESSING",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
 }
 
 export interface DocumentMetadata {
@@ -61,9 +61,9 @@ export interface ChunkMetadata {
 // 3. Chat & RAG Types
 // ==========================================
 export enum MsgRole {
-  USER = 'USER',
-  AI = 'AI',
-  SYSTEM = 'SYSTEM',
+  USER = "USER",
+  AI = "AI",
+  SYSTEM = "SYSTEM",
 }
 
 export interface MessageSource {
@@ -146,7 +146,7 @@ export interface ResumeATSReport {
 export interface LearningResource {
   title: string;
   url: string;
-  type: 'Article' | 'Course' | 'Video' | 'Documentation' | 'Book';
+  type: "Article" | "Course" | "Video" | "Documentation" | "Book";
   relevanceScore: number;
 }
 

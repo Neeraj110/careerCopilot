@@ -15,7 +15,7 @@
 
 - **🤖 AI-Powered SQL Generation:** Convert natural language into optimized SQL queries instantly.
 - **📊 Smart Analytics:** Intelligent data visualization, table parsing, and automated insights generation.
-- **🔗 LangChain Agentic AI:** Orchestrates Google GenAI, Mistral, and Tavily for deep reasoning, search, and data processing.
+- **🔗 LangChain Agentic AI:** Orchestrates Google GenAI and Tavily for deep reasoning, search, and data processing.
 - **🔐 Secure Authentication:** Seamless Google OAuth 2.0 integration and robust JWT-based session management.
 - **⚡ Real-time Performance:** Built on bleeding-edge Next.js 16 and React 19, backed by TanStack Query for optimal caching and state synchronization.
 - **💅 Premium UI/UX:** Stunning, responsive interface styled with Tailwind CSS v4, Framer Motion, and shadcn/ui.
@@ -48,7 +48,7 @@
 Before you begin, ensure you have the following installed:
 - [Node.js](https://nodejs.org/) (v20+ recommended)
 - [PostgreSQL](https://www.postgresql.org/)
-- API Keys: Google Gemini / Mistral, Google OAuth, and Tavily (optional for advanced search)
+- API Keys: Google Gemini, Google OAuth, and Tavily (optional for advanced search)
 
 ### Installation & Setup
 
@@ -98,8 +98,14 @@ GOOGLE_CLIENT_SECRET="your-google-oauth-client-secret"
 
 # AI & LLM Providers
 GEMINI_API_KEY="your-gemini-api-key"
+GEMINI_API_KEY_2="your-second-gemini-api-key"
 TAVILY_API_KEY="your-tavily-api-key"
 ```
+
+`GEMINI_API_KEY` is used by resume parsing, analysis, and improvement workflows.
+`GEMINI_API_KEY_2` is used by chat and roadmap workflows. The `/health` response
+reports whether each provider is configured and tracks per-operation usage counts;
+it never returns API key values.
 
 **Frontend (`frontend/.env`):**
 ```env
@@ -129,6 +135,57 @@ This project is structured with scalability, developer experience (DX), and mode
 - **Type Safety End-to-End:** Using Zod for validation and TypeScript everywhere.
 - **Agentic AI Workflow:** Utilizing LangGraph for complex, multi-step LLM reasoning instead of linear prompts.
 - **Bleeding-Edge Tooling:** Leveraging React 19, Tailwind v4, and Express 5 for maximum performance.
+
+---
+
+## 🔄 CI/CD & Deployment Pipeline
+
+This repository uses **GitHub Actions** for an automated, multi-stage CI/CD pipeline defined in [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml):
+
+```
+       ┌─────────────────┐      ┌──────────────────┐
+       │   backend-ci    │      │   frontend-ci    │
+       │  (Prisma, TSC)  │      │ (ESLint, NextJS) │
+       └────────┬────────┘      └────────┬─────────┘
+                │                        │
+                └───────────┬────────────┘
+                            │ (On Push to main)
+             ┌──────────────┴──────────────┐
+             ▼                             ▼
+   ┌───────────────────┐         ┌───────────────────┐
+   │  deploy-backend   │         │  deploy-frontend  │
+   │  (Render Webhook) │         │ (Vercel Webhook)  │
+   └─────────┬─────────┘         └───────────────────┘
+             │
+             ▼
+   ┌───────────────────┐
+   │   health-check    │
+   │ (/health polling) │
+   └───────────────────┘
+```
+
+### Pipeline Stages:
+1. **Continuous Integration (CI):**
+   - **Backend Job:** Installs dependencies (`npm ci`), generates Prisma Client, validates TypeScript compilation (`npm run typecheck`), and runs `npm run build`.
+   - **Frontend Job:** Caches Next.js build cache, runs ESLint checks (`npm run lint`), and verifies Next.js production builds.
+   - **Security Audit:** Runs non-blocking dependency audits on both backend and frontend.
+2. **Continuous Deployment (CD):**
+   - Triggers automatically when code is pushed to `main` and all CI tests pass.
+   - **Backend:** Triggers zero-downtime redeployment on Render via `RENDER_DEPLOY_HOOK_URL`.
+   - **Frontend:** Triggers deployment on Vercel via webhook or native GitHub integration.
+   - **Health Check:** Validates live service status against `/health` with automated retries.
+
+### GitHub Secrets Configuration:
+Add these optional secrets under **Settings > Secrets and variables > Actions** in your GitHub repository:
+
+| Secret Name | Description | Required For |
+| ----------- | ----------- | ------------ |
+| `RENDER_DEPLOY_HOOK_URL` | Render Deploy Hook URL from your Web Service settings | Automated backend redeployment |
+| `VERCEL_DEPLOY_HOOK_URL` | Vercel Deploy Hook URL (or use Vercel's GitHub app) | Automated frontend redeployment |
+| `NEXT_PUBLIC_API_URL` | Production Backend API URL (defaults to Render URL) | Frontend build-time config |
+| `DATABASE_URL` | PostgreSQL connection string | Optional (fallback provided for schema generation) |
+
+---
 
 ## 🤝 Contributing
 

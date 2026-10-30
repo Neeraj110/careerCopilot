@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import * as chatService from "./chat.service";
 import {
   createChatSchema,
+  updateChatSchema,
   sendMessageSchema,
   chatParamsSchema,
 } from "./chat.schema";
@@ -21,17 +22,29 @@ export const createChat = catchAsync(async (
   res.status(201).json({ status: "success", data: chat });
 });
 
+export const updateChat = catchAsync(async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const { chatId } = chatParamsSchema.parse(req.params);
+  const data = updateChatSchema.parse(req.body);
+  const chat = await chatService.updateChat(req.user!.id, chatId, data);
+  res.status(200).json({ status: "success", data: chat });
+});
+
 export const sendMessage = catchAsync(async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   const { chatId } = chatParamsSchema.parse(req.params);
-  const { content } = sendMessageSchema.parse(req.body);
+  const { content, documentId } = sendMessageSchema.parse(req.body);
   const result = await chatService.sendMessage(
     req.user!.id,
     chatId,
     content,
+    documentId,
   );
   res.status(200).json({ status: "success", data: result });
 });

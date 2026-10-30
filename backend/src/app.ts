@@ -17,6 +17,7 @@ import { requireAuth } from "./middlewares/auth";
 import cookieParser from "cookie-parser";
 import passport from "passport";
 import { configurePassport } from "./config/passport";
+import { getAiHealth } from "./infrastructure/ai";
 const app = express();
 
 // Security and Optimization middlewares
@@ -59,16 +60,18 @@ app.use("/api/v1/resumes", resumeV2Routes);
 app.get("/api/v1/dashboard", requireAuth, resumeV2Ctrl.dashboard);
 app.get("/api/v1/insights", requireAuth, resumeV2Ctrl.insights);
 app.get("/api/v1/versions", requireAuth, resumeV2Ctrl.allVersions);
-app.get("/api/v1/history", requireAuth, resumeV2Ctrl.history);
 app.patch("/api/v1/auth/profile", requireAuth, resumeV2Ctrl.updateProfile);
 
 // Health check
 app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  res.status(200).json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    ai: getAiHealth(),
+  });
 });
 
 // Error handling middleware (must be after routes)
 app.use(errorHandler);
 
 export default app;
-

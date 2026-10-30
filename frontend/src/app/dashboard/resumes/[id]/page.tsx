@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Sparkles, ArrowLeft, Loader2, FileText, Download } from "lucide-react";
+import { Sparkles, ArrowLeft, Loader2, FileText, Download, FileCode, Check, Copy } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import { BulletRewrites } from "@/components/analysis/bullet-rewrites";
 import { VersionSwitcher } from "@/components/resume/version-switcher";
 import { DiffView } from "@/components/resume/diff-view";
 import { relativeTime } from "@/lib/utils";
+import { generateResumeLatex } from "@/lib/latex-generator";
 import {
   useResume,
   useAnalysisForVersion,
@@ -56,6 +57,19 @@ export default function ResumeDetail() {
   const applyRewrites = useApplyRewrites(id);
   const [targetRole, setTargetRole] = useState("");
   const [tab, setTab] = useState("score");
+  const [latexCopied, setLatexCopied] = useState(false);
+
+  async function copyLatex() {
+    if (!activeVersion?.parsedSections) return;
+    try {
+      const code = generateResumeLatex(activeVersion.parsedSections);
+      await navigator.clipboard.writeText(code);
+      setLatexCopied(true);
+      setTimeout(() => setLatexCopied(false), 2500);
+    } catch (err) {
+      console.error(err);
+    }
+  }
 
   // Compute score delta between the active version and the previous one.
   // Versions store a `score` field from the shallow list; for the detail view
@@ -146,15 +160,33 @@ export default function ResumeDetail() {
             : ""
         }
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button variant="ghost" onClick={() => router.push("/dashboard/resumes")}>
               <ArrowLeft size={14} /> All resumes
             </Button>
             <Button
               variant="outline"
+              onClick={copyLatex}
+              disabled={!activeVersion?.parsedSections}
+              className="flex items-center gap-1.5"
+            >
+              {latexCopied ? (
+                <>
+                  <Check size={14} className="text-green-500" />
+                  <span>Copied LaTeX!</span>
+                </>
+              ) : (
+                <>
+                  <FileCode size={14} />
+                  <span>Copy LaTeX (Overleaf)</span>
+                </>
+              )}
+            </Button>
+            <Button
+              variant="accent"
               onClick={() => router.push(`/dashboard/resumes/${id}/pdf`)}
             >
-              <Download size={14} /> Export PDF
+              <Download size={14} /> Export &amp; Overleaf
             </Button>
           </div>
         }
@@ -313,6 +345,32 @@ function PreviewLabel({ children }: { children: React.ReactNode }) {
 function ParsedSectionsPreview({ version }: { version: any }) {
   const s = version.parsedSections || {};
   const b = s.basics || {};
+  const hasParsedContent = Object.values(s).some((value) =>
+    Array.isArray(value) ? value.length > 0 : Boolean(value),
+  );
+
+  if (!hasParsedContent && version.rawText) {
+    return (
+      <div className="p-5">
+        <PreviewLabel>Extracted resume text</PreviewLabel>
+        <pre className="max-h-96 overflow-auto whitespace-pre-wrap text-sm leading-relaxed text-ink-muted">
+          {version.rawText}
+        </pre>
+        <p className="mt-4 text-xs text-ink-muted">
+          Structured sections are unavailable for this version. Run the analysis
+          again or upload the resume again to retry parsing.
+        </p>
+      </div>
+    );
+  }
+
+  if (!hasParsedContent) {
+    return (
+      <div className="p-5 text-sm text-ink-muted">
+        No resume content was parsed for this version.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 text-sm">

@@ -1,19 +1,20 @@
-import { ChatMistralAI } from "@langchain/mistralai";
+import axios from "axios";
+import {
+  createGeminiModel,
+  recordAiCall,
+  isTransientAiError,
+  withAiRetry,
+} from "../../infrastructure/ai";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { z } from "zod";
 import * as Diff from "diff";
-import { extractText } from "../document/document.service";
-import axios from "axios";
 import { prisma } from "../../infrastructure/prisma";
 import { AppError } from "../../middlewares/errorHandler";
 import { config } from "../../config";
+import { generateResumeLatex } from "../../utils/latexGenerator";
+import { extractText } from "../document/document.service";
 
-const llm = new ChatMistralAI({
-  apiKey: config.mistralApiKey,
-  model: "mistral-small-latest",
-  temperature: 0.3,
-  maxRetries: 2,
-});
+export const llm = createGeminiModel(config.geminiApiKey);
 
 // ── List resumes (shallow) ─────────────────────────────────────────────
 export const listResumes = async (userId: string) => {
@@ -44,24 +45,54 @@ export const createFromDocument = async (userId: string, documentId: string) => 
 
   if (!doc) throw new AppError("Document not found", 404);
 
-  // Since Cloudinary raw files may return 401 due to strict delivery settings,
-  // we can reconstruct the text from the Chunks! The AI is robust to chunk overlaps.
-  const chunks = await prisma.chunk.findMany({
+  // 1. Try to reconstruct text from Chunks
+  let chunks = await prisma.chunk.findMany({
     where: { documentId },
   });
 
-  if (!chunks.length) throw new AppError("Document has no extracted chunks", 400);
+  // If document is processing, wait briefly for chunks to complete
+  if (!chunks.length && (doc.status === "PENDING" || doc.status === "PROCESSING")) {
+    await new Promise((r) => setTimeout(r, 2000));
+    chunks = await prisma.chunk.findMany({
+      where: { documentId },
+    });
+  }
 
-  // Sort chunks by chunkIndex in metadata
-  chunks.sort((a, b) => {
-    const aMeta = a.metadata as any;
-    const bMeta = b.metadata as any;
-    return (aMeta?.chunkIndex || 0) - (bMeta?.chunkIndex || 0);
-  });
+  let rawText = "";
 
-  const rawText = chunks.map(c => c.content).join("\n\n");
+  if (chunks.length > 0) {
+    // Sort chunks by chunkIndex in metadata
+    chunks.sort((a, b) => {
+      const aMeta = a.metadata as any;
+      const bMeta = b.metadata as any;
+      return (aMeta?.chunkIndex || 0) - (bMeta?.chunkIndex || 0);
+    });
+    rawText = chunks.map(c => c.content).join("\n\n");
+  }
 
-  if (!rawText || !rawText.trim()) throw new AppError("Document has no extracted text", 400);
+  // 2. Fallback: if no chunks in database, attempt direct text extraction from fileUrl
+  if (!rawText.trim() && doc.fileUrl) {
+    try {
+      const fileRes = await axios.get(doc.fileUrl, { responseType: "arraybuffer" });
+      const buffer = Buffer.from(fileRes.data);
+      const mimeType =
+        doc.type === "PDF"
+          ? "application/pdf"
+          : doc.type === "DOCX"
+          ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          : "text/plain";
+      rawText = await extractText(buffer, mimeType);
+    } catch (fetchErr) {
+      console.warn("Direct file download/extraction fallback failed:", fetchErr);
+    }
+  }
+
+  if (!rawText || !rawText.trim()) {
+    if (doc.status === "PENDING" || doc.status === "PROCESSING") {
+      throw new AppError("Document is still being processed. Please wait a moment and try again.", 400);
+    }
+    throw new AppError("Document has no extracted text. Please re-upload the document.", 400);
+  }
 
   // Parse resume sections with AI
   const parsed = await parseResumeWithAI(rawText);
@@ -115,6 +146,7 @@ export const getResume = async (userId: string, resumeId: string) => {
       label: v.label,
       sourceType: v.sourceType,
       parsedSections: v.parsedSections,
+      rawText: v.rawText,
       createdAt: v.createdAt,
     })),
   };
@@ -229,14 +261,20 @@ ${resumeText}`;
   let parsed: z.infer<typeof AnalysisSchema>;
 
   try {
-    parsed = await structuredLlm.invoke([
-      new SystemMessage(
-        "You are an expert ATS analyst. Score resumes, find issues, suggest rewrites.",
-      ),
-      new HumanMessage(prompt),
-    ]);
+    recordAiCall("gemini-resume", "resume-v2.analyze");
+    parsed = await withAiRetry(() =>
+      structuredLlm.invoke([
+        new SystemMessage(
+          "You are an expert ATS analyst. Score resumes, find issues, suggest rewrites.",
+        ),
+        new HumanMessage(prompt),
+      ]),
+    );
   } catch (error) {
     console.error("AI Analysis Error:", error);
+    if (isTransientAiError(error)) {
+      throw new AppError("AI is busy, please retry in a moment", 503);
+    }
     throw new AppError("Failed to parse AI analysis", 500);
   }
 
@@ -247,7 +285,7 @@ ${resumeText}`;
       atsScore: parsed.atsScore ?? 0,
       targetRole: targetRole || null,
       summary: parsed.summary || null,
-      model: "mistral-small-latest",
+      model: config.geminiModel,
       scoreBreakdown: parsed.scoreBreakdown || null,
       issues: parsed.issues || [],
       strengths: parsed.strengths || [],
@@ -310,8 +348,69 @@ export const applyRewrites = async (
     }
   }
 
-  // Parse the new text
-  const parsed = await parseResumeWithAI(newText);
+  // Clone source parsedSections to ensure we preserve all skills categories, projects, links, etc.
+  const baseSections = (sourceVersion.parsedSections
+    ? JSON.parse(JSON.stringify(sourceVersion.parsedSections))
+    : {}) as any;
+
+  // Apply rewrites directly onto baseSections (both experience bullets and project bullets)
+  for (const rw of toApply) {
+    if (!rw.original || !rw.rewritten) continue;
+    const orig = rw.original.trim();
+    const rew = rw.rewritten.trim();
+
+    // In experience
+    if (Array.isArray(baseSections.experience)) {
+      for (const exp of baseSections.experience) {
+        if (Array.isArray(exp.bullets)) {
+          exp.bullets = exp.bullets.map((b: string) => {
+            if (b.trim() === orig || b.includes(orig)) {
+              return b.replace(orig, rew);
+            }
+            return b;
+          });
+        }
+      }
+    }
+
+    // In projects
+    if (Array.isArray(baseSections.projects)) {
+      for (const proj of baseSections.projects) {
+        if (Array.isArray(proj.bullets)) {
+          proj.bullets = proj.bullets.map((b: string) => {
+            if (b.trim() === orig || b.includes(orig)) {
+              return b.replace(orig, rew);
+            }
+            return b;
+          });
+        }
+      }
+    }
+
+    // In summary
+    if (typeof baseSections.summary === "string" && baseSections.summary.includes(orig)) {
+      baseSections.summary = baseSections.summary.replace(orig, rew);
+    }
+  }
+
+  // Also attempt AI parse to capture any new structuring with baseSections preservation
+  let parsed = baseSections;
+  try {
+    const aiParsed = await parseResumeWithAI(newText);
+    if (aiParsed) {
+      parsed = {
+        ...baseSections,
+        ...aiParsed,
+        basics: { ...(baseSections.basics || {}), ...(aiParsed.basics || {}) },
+        skills: aiParsed.skills?.length ? aiParsed.skills : baseSections.skills,
+        experience: aiParsed.experience?.length ? aiParsed.experience : baseSections.experience,
+        projects: aiParsed.projects?.length ? aiParsed.projects : baseSections.projects,
+        education: aiParsed.education?.length ? aiParsed.education : baseSections.education,
+      };
+    }
+  } catch (err) {
+    console.warn("AI parsing after rewrites had warning; using high-fidelity preserved sections with updated rewrites:", err);
+  }
 
   const newLabel = `V${resume.versions.length + 1}`;
   const newVersion = await prisma.resumeVersion.create({
@@ -332,6 +431,24 @@ export const applyRewrites = async (
   return { version: newVersion, appliedCount: toApply.length };
 };
 
+// ── Get Resume LaTeX (Overleaf Ready) ──────────────────────────────────
+export const getResumeLatex = async (userId: string, resumeId: string, versionId: string) => {
+  const resume = await prisma.resume.findFirst({ where: { id: resumeId, userId } });
+  if (!resume) throw new AppError("Resume not found", 404);
+
+  const version = await prisma.resumeVersion.findFirst({
+    where: { id: versionId, resumeId },
+  });
+  if (!version) throw new AppError("Version not found", 404);
+
+  const latex = generateResumeLatex(version.parsedSections);
+  return {
+    latex,
+    label: version.label,
+    title: resume.title,
+  };
+};
+
 // ── Delete resume ──────────────────────────────────────────────────────
 export const deleteResume = async (userId: string, resumeId: string) => {
   const resume = await prisma.resume.findFirst({ where: { id: resumeId, userId } });
@@ -344,9 +461,31 @@ export const deleteResume = async (userId: string, resumeId: string) => {
 export const getDashboard = async (userId: string) => {
   const resumes = await prisma.resume.findMany({
     where: { userId },
-    include: {
-      versions: { orderBy: { createdAt: "asc" } },
-      analyses: { orderBy: { createdAt: "asc" } },
+    select: {
+      id: true,
+      title: true,
+      updatedAt: true,
+      versions: {
+        select: {
+          id: true,
+          label: true,
+          sourceType: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "asc" },
+      },
+      analyses: {
+        select: {
+          id: true,
+          versionId: true,
+          atsScore: true,
+          issues: true,
+          keywordsPresent: true,
+          keywordsMissing: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "asc" },
+      },
     },
     orderBy: { updatedAt: "desc" },
   });
@@ -546,63 +685,6 @@ export const getAllVersions = async (userId: string) => {
   };
 };
 
-// ── History ────────────────────────────────────────────────────────────
-export const getHistory = async (userId: string) => {
-  const [versions, analyses] = await Promise.all([
-    prisma.resumeVersion.findMany({
-      where: { resume: { userId } },
-      include: { resume: { select: { id: true, title: true } } },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.analysis.findMany({
-      where: { resume: { userId } },
-      include: {
-        resume: { select: { id: true, title: true } },
-        version: { select: { label: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-  ]);
-
-  const events: any[] = [];
-
-  for (const v of versions) {
-    events.push({
-      id: v.id,
-      type: v.sourceType === "upload" ? "upload" : "rewrite",
-      title:
-        v.sourceType === "upload"
-          ? `${v.resume.title} uploaded`
-          : `${v.label} created (rewrite)`,
-      subtitle: v.resume.title,
-      label: v.label,
-      resumeId: v.resume.id,
-      at: v.createdAt,
-    });
-  }
-
-  for (const a of analyses) {
-    events.push({
-      id: a.id,
-      type: "analyze",
-      title: `Analysis complete on ${a.version.label}`,
-      subtitle: `ATS score ${a.atsScore} / 100`,
-      label: `${a.atsScore} pts`,
-      resumeId: a.resume.id,
-      at: a.createdAt,
-    });
-  }
-
-  events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
-
-  const totals: Record<string, number> = { all: events.length };
-  for (const e of events) {
-    totals[e.type] = (totals[e.type] || 0) + 1;
-  }
-
-  return { events, totals };
-};
-
 // ── Update profile ─────────────────────────────────────────────────────
 export const updateProfile = async (userId: string, data: { name?: string }) => {
   const user = await prisma.user.update({
@@ -616,30 +698,38 @@ export const updateProfile = async (userId: string, data: { name?: string }) => 
 // ── Helper: Parse resume text with AI ──────────────────────────────────
 const ParsedResumeSchema = z.object({
   basics: z.object({
-    name: z.string().optional(),
-    title: z.string().optional(),
+    name: z.string().optional().describe("Candidate full name"),
+    title: z.string().optional().describe("Professional title e.g. Full Stack Developer"),
     email: z.string().optional(),
     phone: z.string().optional(),
-    location: z.string().optional(),
+    location: z.string().optional().describe("City, Country e.g. Delhi, India"),
+    github: z.string().optional().describe("GitHub profile URL or username e.g. github.com/Neeraj110"),
+    linkedin: z.string().optional().describe("LinkedIn profile URL or username e.g. linkedin.com/in/neerajgaur12"),
+    portfolio: z.string().optional().describe("Portfolio website URL or link label"),
     links: z.array(z.object({ label: z.string(), url: z.string() })).optional(),
   }).optional(),
-  summary: z.string().optional(),
+  summary: z.string().optional().describe("Professional summary paragraph"),
+  skills: z.array(z.string()).optional().describe("Technical skills. If the resume categorizes skills (e.g. Frontend, Backend, AI Tools, Tools & Platforms, Languages), format each item as 'Category: skill1, skill2, skill3' to preserve the exact grouping."),
   experience: z.array(z.object({
-    role: z.string().optional(),
-    company: z.string().optional(),
-    period: z.string().optional(),
-    bullets: z.array(z.string()).optional()
+    role: z.string().optional().describe("Job title or designation"),
+    company: z.string().optional().describe("Company or organization name"),
+    location: z.string().optional().describe("Company location e.g. New Delhi"),
+    period: z.string().optional().describe("Dates worked e.g. August 2025 - February 2026"),
+    bullets: z.array(z.string()).optional().describe("Achievement and responsibility bullet points")
+  })).optional(),
+  projects: z.array(z.object({
+    name: z.string().optional().describe("Project name"),
+    subtitle: z.string().optional().describe("One-line italic tagline or description of the project"),
+    link: z.string().optional().describe("Live demo link, GitHub link or URL"),
+    bullets: z.array(z.string()).optional().describe("Key feature or achievement bullet points for the project"),
+    tech: z.array(z.string()).optional().describe("Tech stack list e.g. ['Next.js', 'TypeScript', 'Node.js', 'PostgreSQL']")
   })).optional(),
   education: z.array(z.object({
-    degree: z.string().optional(),
-    school: z.string().optional(),
-    year: z.string().optional()
-  })).optional(),
-  skills: z.array(z.string()).optional(),
-  projects: z.array(z.object({
-    name: z.string().optional(),
-    description: z.string().optional(),
-    tech: z.array(z.string()).optional()
+    degree: z.string().optional().describe("Degree or diploma e.g. Bachelor of Computer Applications (BCA)"),
+    school: z.string().optional().describe("University, college or school name"),
+    location: z.string().optional().describe("Location e.g. Faridabad"),
+    year: z.string().optional().describe("Graduation year or date range e.g. 2022 - 2025"),
+    score: z.string().optional().describe("CGPA, GPA or percentage e.g. 'CGPA: 7.0' or 'Score: 75%'")
   })).optional(),
   certifications: z.array(z.object({
     name: z.string().optional(),
@@ -649,16 +739,30 @@ const ParsedResumeSchema = z.object({
   interests: z.array(z.string()).optional()
 });
 
-async function parseResumeWithAI(rawText: string) {
+export async function parseResumeWithAI(rawText: string) {
   const structuredLlm = llm.withStructuredOutput(ParsedResumeSchema, { name: "parse_resume" });
   
   try {
-    return await structuredLlm.invoke([
-      new SystemMessage("You parse resume text into structured sections. Extract as much information as possible from the provided text."),
-      new HumanMessage(`Parse this resume:\n\n${rawText}`),
-    ]);
+    recordAiCall("gemini-resume", "resume-v2.parse");
+    return await withAiRetry(() =>
+      structuredLlm.invoke([
+        new SystemMessage(
+          "You are an expert resume parser. Parse resume text into structured sections. " +
+          "Extract all information accurately: candidate contact info (including GitHub, LinkedIn, Portfolio), " +
+          "categorized skills with 'Category: item1, item2, ...' (e.g. 'Frontend: React.js, Next.js', 'Backend: Node.js, Express.js', 'AI Tools: LangChain, Gemini API', 'Tools & Platforms: Git, Postman'), " +
+          "all experience bullet points, all project details (name, subtitle, live link, bullets, and tech stack), and education details (degree, school, year, score/cgpa)."
+        ),
+        new HumanMessage(`Parse this resume:\n\n${rawText}`),
+      ]),
+    );
   } catch (error) {
     console.error("AI Parsing Error:", error);
-    return { basics: {}, summary: "", experience: [], education: [], skills: [], projects: [], certifications: [], languages: [], interests: [] };
+    if (isTransientAiError(error)) {
+      throw new AppError("AI is busy, please retry in a moment", 503);
+    }
+    throw new AppError(
+      "Resume text was extracted, but AI parsing failed. Please retry the upload.",
+      502,
+    );
   }
 }

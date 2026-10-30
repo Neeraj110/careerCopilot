@@ -163,6 +163,20 @@ export default function ChatPage() {
     }
   };
 
+  const handleSelectDocument = async (docId: string | null) => {
+    setActiveDocumentId(docId);
+    if (activeChatId) {
+      try {
+        await chatApi.update(activeChatId, { documentId: docId });
+        setChats((prev) =>
+          prev.map((c) => (c.id === activeChatId ? { ...c, documentId: docId } : c))
+        );
+      } catch (error) {
+        console.error("Failed to update chat document:", error);
+      }
+    }
+  };
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -203,10 +217,14 @@ export default function ChatPage() {
 
     setIsTyping(true);
 
-    let currentAiMessageId = "";
+    const currentAiMessageId = "";
 
     try {
-      const response = await chatApi.sendMessage(currentChatId, messageText);
+      const response = await chatApi.sendMessage(
+        currentChatId,
+        messageText,
+        activeDocumentId,
+      );
       const aiMessage = response.data;
 
       setMessages((prev) => [...prev, aiMessage]);
@@ -337,11 +355,11 @@ export default function ChatPage() {
               <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[250px] bg-card/80 backdrop-blur-xl border-border/40">
-              <DropdownMenuItem onClick={() => setActiveDocumentId(null)}>
+              <DropdownMenuItem onClick={() => handleSelectDocument(null)}>
                 None
               </DropdownMenuItem>
               {documents.map(doc => (
-                <DropdownMenuItem key={doc.id} onClick={() => setActiveDocumentId(doc.id)}>
+                <DropdownMenuItem key={doc.id} onClick={() => handleSelectDocument(doc.id)}>
                   <span className="truncate">{doc.title}</span>
                 </DropdownMenuItem>
               ))}

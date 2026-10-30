@@ -122,24 +122,33 @@ const processDocument = async (
     // 3. Generate embeddings for all chunks
     const vectors = await embedTexts(chunks);
 
-    // 4. Store chunks and vectors in Postgres
-    await Promise.all(
-      chunks.map(async (content, index) => {
+    // 4. Store chunks and mark the document complete atomically.
+    await prisma.$transaction(async (tx) => {
+      for (const [index, content] of chunks.entries()) {
+        const vector = vectors[index];
+        if (!vector || vector.length !== 1024) {
+          throw new Error(
+            `Invalid embedding for chunk ${index}: expected 1024 dimensions`,
+          );
+        }
+
         const id = uuidv4();
-        const vectorStr = `[${vectors[index].join(",")}]`;
-        const metadataStr = JSON.stringify({ chunkIndex: index, totalChunks: chunks.length });
-        
-        await prisma.$executeRaw`
+        const vectorStr = `[${vector.join(",")}]`;
+        const metadataStr = JSON.stringify({
+          chunkIndex: index,
+          totalChunks: chunks.length,
+        });
+
+        await tx.$executeRaw`
           INSERT INTO "Chunk" (id, "documentId", content, metadata, embedding, "createdAt")
           VALUES (${id}, ${documentId}, ${content}, ${metadataStr}::jsonb, ${vectorStr}::vector, NOW())
         `;
-      }),
-    );
+      }
 
-    // 6. Mark as COMPLETED
-    await prisma.document.update({
-      where: { id: documentId },
-      data: { status: "COMPLETED" },
+      await tx.document.update({
+        where: { id: documentId },
+        data: { status: "COMPLETED" },
+      });
     });
 
     console.log(
@@ -161,15 +170,16 @@ const processDocument = async (
       );
     }
 
-    // Mark as FAILED on any error
-    await prisma.document.update({
-      where: { id: documentId },
-      data: { status: "FAILED" },
+    // Keep the record visible as FAILED, but remove any partial chunks
+    // atomically so a later retry cannot read incomplete retrieval data.
+    await prisma.$transaction(async (tx) => {
+      await tx.chunk.deleteMany({ where: { documentId } });
+      await tx.document.update({
+        where: { id: documentId },
+        data: { status: "FAILED" },
+      });
     });
 
-    await prisma.document.delete({
-      where: { id: documentId },
-    });
     throw error;
   }
 };
@@ -179,10 +189,17 @@ const processDocument = async (
 export const getUserDocuments = async (userId: string) => {
   return prisma.document.findMany({
     where: { userId },
-    orderBy: { createdAt: "desc" },
-    include: {
-      _count: { select: { chunks: true, chats: true } },
+    select: {
+      id: true,
+      title: true,
+      fileUrl: true,
+      publicId: true,
+      type: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
     },
+    orderBy: { createdAt: "desc" },
   });
 };
 
@@ -192,7 +209,14 @@ export const getDocumentById = async (userId: string, documentId: string) => {
   const document = await prisma.document.findFirst({
     where: { id: documentId, userId },
     include: {
-      chunks: true,
+      chunks: {
+        select: {
+          id: true,
+          content: true,
+          metadata: true,
+          createdAt: true,
+        },
+      },
       _count: { select: { chats: true } },
     },
   });

@@ -4,6 +4,8 @@ import { documentsApi } from "../lib/api/documents";
 import { dashboardKey } from "./use-dashboard-v2";
 import { useToast } from "../providers/ui-provider";
 
+type ResumeListItem = { id: string };
+
 export const resumeKeys = {
   all: ["resumes"],
   list: () => [...resumeKeys.all, "list"],
@@ -115,12 +117,25 @@ export function useDeleteResume() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: (id: string) => resumesApi.remove(id),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: resumeKeys.list() });
+      const previous = qc.getQueryData(resumeKeys.list());
+      qc.setQueryData(resumeKeys.list(), (resumes: ResumeListItem[] = []) =>
+        resumes.filter((resume) => resume.id !== id),
+      );
+      return { previous };
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: resumeKeys.list() });
       qc.invalidateQueries({ queryKey: dashboardKey });
       toast.info("Resume deleted", "");
     },
-    onError: (e: any) => toast.error("Couldn't delete resume", e?.message),
+    onError: (e: any, _id, context) => {
+      if (context?.previous) {
+        qc.setQueryData(resumeKeys.list(), context.previous);
+      }
+      toast.error("Couldn't delete resume", e?.message);
+    },
   });
 }
 

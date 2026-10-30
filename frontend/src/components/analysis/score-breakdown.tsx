@@ -20,8 +20,8 @@ export function ScoreBreakdown({ breakdown }: { breakdown?: any }) {
           <CardDescription className="mt-1">Each axis scored out of 25</CardDescription>
         </div>
       </CardHeader>
-      <div className="h-[230px] -mx-2 flex-1">
-        <ResponsiveContainer>
+      <div className="h-[230px] -mx-2 flex-1 min-w-0">
+        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
           <RadarChart data={data} outerRadius="75%">
             <PolarGrid stroke="var(--border)" />
             <PolarAngleAxis

@@ -1,5 +1,5 @@
 import { END, START, Annotation, StateGraph } from "@langchain/langgraph";
-import { ChatMistralAI } from "@langchain/mistralai";
+import { createGeminiModel, recordAiCall } from "../../../infrastructure/ai";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { z } from "zod";
 import { config } from "../../../config";
@@ -31,12 +31,7 @@ const ResumeImprovementState = Annotation.Root({
 
 export type ImprovementAgentState = typeof ResumeImprovementState.State;
 
-const rawModel = new ChatMistralAI({
-  apiKey: config.mistralApiKey,
-  model: "mistral-large-latest",
-  temperature: 0.4,
-  maxRetries: 2,
-});
+const rawModel = createGeminiModel(config.geminiApiKey);
 
 async function parseResumeNode(state: ImprovementAgentState) {
   const schema = z.object({
@@ -44,6 +39,7 @@ async function parseResumeNode(state: ImprovementAgentState) {
   });
   const structuredModel = rawModel.withStructuredOutput(schema, { name: "ParseResume" });
 
+  recordAiCall("gemini-resume", "resume.improvement.parse");
   const response = await structuredModel.invoke([
     new SystemMessage(`
       You are a resume parser. Extract every achievement-oriented bullet point
@@ -69,6 +65,7 @@ async function analyzeJDNode(state: ImprovementAgentState) {
   });
   const structuredModel = rawModel.withStructuredOutput(schema, { name: "AnalyzeJD" });
 
+  recordAiCall("gemini-resume", "resume.improvement.analyze-jd");
   const response = await structuredModel.invoke([
     new SystemMessage(`
       You are a senior technical recruiter analyzing a job description.
@@ -101,6 +98,7 @@ async function findGapsNode(state: ImprovementAgentState) {
   });
   const structuredModel = rawModel.withStructuredOutput(schema, { name: "FindGaps" });
 
+  recordAiCall("gemini-resume", "resume.improvement.find-gaps");
   const response = await structuredModel.invoke([
     new SystemMessage(`
       You are a resume gap analyst. Compare resume bullets against JD requirements.
@@ -149,6 +147,7 @@ async function rewriteBulletsNode(state: ImprovementAgentState) {
     `
       : "";
 
+  recordAiCall("gemini-resume", "resume.improvement.rewrite");
   const response = await structuredModel.invoke([
     new SystemMessage(`
       You are an expert resume writer who specializes in tech roles.
@@ -197,6 +196,7 @@ async function validateNode(state: ImprovementAgentState) {
   });
   const structuredModel = rawModel.withStructuredOutput(schema, { name: "Validate" });
 
+  recordAiCall("gemini-resume", "resume.improvement.validate");
   const response = await structuredModel.invoke([
     new SystemMessage(`
       You are a strict ATS scoring system evaluating improved resume bullets

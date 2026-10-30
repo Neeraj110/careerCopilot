@@ -40,6 +40,7 @@ router.use(requireAuth);
  *         description: Unauthorized
  */
 router.post("/", chatController.createChat);
+router.patch("/:chatId", chatController.updateChat);
 
 /**
  * @swagger

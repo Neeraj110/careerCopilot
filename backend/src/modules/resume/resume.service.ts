@@ -1,19 +1,34 @@
-import { ChatMistralAI } from "@langchain/mistralai";
+import {
+  createGeminiModel,
+  recordAiCall,
+  withAiRetry,
+  isTransientAiError,
+} from "../../infrastructure/ai";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { prisma } from "../../infrastructure/prisma";
 import { AppError } from "../../middlewares/errorHandler";
 import { config } from "../../config";
 import { buildImprovementAgent } from "./agent/improvement.agent";
 
-const rawSearchGroundedModel = new ChatMistralAI({
-  apiKey: config.mistralApiKey,
-  model: "mistral-small-latest",
-  temperature: 1,
-});
+function parseLLMJson<T>(content: string): T {
+  const cleaned = content
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+  return JSON.parse(cleaned);
+}
+
+const rawSearchGroundedModel = createGeminiModel(
+  config.geminiApiKey,
+  config.geminiModel,
+);
 
 const searchGroundedModel = {
-  invoke: (messages: any, options?: any) =>
-    rawSearchGroundedModel.invoke(messages, { ...options, response_format: { type: "json_object" } }),
+  invoke: (messages: any, options?: any) => {
+    recordAiCall("gemini-resume", "resume.ats-analysis");
+    return rawSearchGroundedModel.invoke(messages, options);
+  },
 };
 
 export const checkATS = async (userId: string, documentId: string) => {
@@ -37,8 +52,10 @@ export const checkATS = async (userId: string, documentId: string) => {
     .map((chunk: { content: string }) => chunk.content)
     .join("\n");
 
-  const response = await searchGroundedModel.invoke([
-    new SystemMessage(`
+  try {
+    const response = await withAiRetry(() =>
+      searchGroundedModel.invoke([
+        new SystemMessage(`
       You are an expert ATS (Applicant Tracking System) analyst with 
       access to real-time industry hiring data via Google Search.
       
@@ -69,23 +86,28 @@ export const checkATS = async (userId: string, documentId: string) => {
       
       Return ONLY valid JSON, no markdown, no explanation outside JSON.
     `),
-    new HumanMessage(`
+        new HumanMessage(`
       Analyze this resume using current industry standards.
       Search for latest ATS requirements and hiring trends for this role.
       
       RESUME:
       ${resumeText}
     `),
-  ]);
+      ]),
+    );
 
-  const content =
-    typeof response.content === "string"
-      ? response.content
-      : JSON.stringify(response.content);
+    const content =
+      typeof response.content === "string"
+        ? response.content
+        : JSON.stringify(response.content);
 
-  try {
-    return JSON.parse(content);
-  } catch {
+    return parseLLMJson(content);
+  } catch (error) {
+    if (isTransientAiError(error)) {
+      throw new AppError("AI is busy, please retry in a moment", 503);
+    }
+    if (error instanceof AppError) throw error;
+    console.error("ATS Check Error:", error);
     throw new AppError("Failed to parse ATS analysis", 500);
   }
 };
@@ -116,8 +138,10 @@ export const jdMatch = async (
     .join("\n");
 
   // 3. JD Match specific prompt
-  const response = await searchGroundedModel.invoke([
-    new SystemMessage(`
+  try {
+    const response = await withAiRetry(() =>
+      searchGroundedModel.invoke([
+        new SystemMessage(`
       You are an expert recruiter and ATS specialist.
       You compare resumes against job descriptions to find match scores and gaps.
       You have access to Google Search to verify current skill requirements.
@@ -146,7 +170,7 @@ export const jdMatch = async (
         "overallFeedback": "..."
       }
     `),
-    new HumanMessage(`
+        new HumanMessage(`
       Compare this resume against the job description below.
       Search for current market relevance of required skills if needed.
 
@@ -156,17 +180,22 @@ export const jdMatch = async (
       RESUME:
       ${resumeText}
     `),
-  ]);
+      ]),
+    );
 
-  // 4. Parse response
-  const content =
-    typeof response.content === "string"
-      ? response.content
-      : JSON.stringify(response.content);
+    // 4. Parse response
+    const content =
+      typeof response.content === "string"
+        ? response.content
+        : JSON.stringify(response.content);
 
-  try {
-    return JSON.parse(content);
-  } catch {
+    return parseLLMJson(content);
+  } catch (error) {
+    if (isTransientAiError(error)) {
+      throw new AppError("AI is busy, please retry in a moment", 503);
+    }
+    if (error instanceof AppError) throw error;
+    console.error("JD Match Error:", error);
     throw new AppError("Failed to parse JD match analysis", 500);
   }
 };

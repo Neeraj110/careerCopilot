@@ -1,5 +1,5 @@
 import { Annotation, START, END, StateGraph } from "@langchain/langgraph";
-import { ChatMistralAI } from "@langchain/mistralai";
+import { createGeminiModel, recordAiCall } from "../../../infrastructure/ai";
 import { TavilySearch } from "@langchain/tavily";
 import { z } from "zod";
 import { config } from "../../../config";
@@ -41,12 +41,7 @@ export const RoadmapState = Annotation.Root({
 
 export type RoadmapAgentState = typeof RoadmapState.State;
 
-const rawLlm = new ChatMistralAI({
-  apiKey: config.mistralApiKey,
-  model: "mistral-large-latest",
-  temperature: 0.3,
-  maxRetries: 2,
-});
+const rawLlm = createGeminiModel(config.geminiApiKey2);
 
 const tavily = new TavilySearch({
   maxResults: 6,
@@ -56,8 +51,6 @@ const tavily = new TavilySearch({
 });
 
 export async function queryGeneratorNode(state: RoadmapAgentState) {
-  console.log("[Node 1] queryGeneratorNode running...");
-
   const querySchema = z.object({
     queries: z.array(z.string()).length(6).describe("Exactly 6 specific Google search queries")
   });
@@ -78,17 +71,15 @@ Rules:
 - Be specific, not generic
   `;
 
+  recordAiCall("gemini-general", "roadmap.query-generator");
   const result = await structuredLlm.invoke(prompt);
   const queries = result.queries;
-
-  console.log("[Node 1] Generated queries:", queries);
   return { searchQueries: queries };
 }
 
 export async function webSearcherNode(
   state: RoadmapAgentState,
 ): Promise<Partial<RoadmapAgentState>> {
-  console.log("[Node 2] webSearcherNode running...");
 
   const allResults: { title: string; url: string; snippet: string }[] = [];
 
@@ -125,17 +116,14 @@ export async function webSearcherNode(
     return true;
   });
 
-  console.log(`[Node 2] Total unique resources found: ${unique.length}`);
   return { rawResources: unique };
 }
 
 export async function resourceRankerNode(
   state: RoadmapAgentState,
 ): Promise<Partial<RoadmapAgentState>> {
-  console.log("[Node 3] resourceRankerNode running...");
 
   if (state.rawResources.length === 0) {
-    console.warn("[Node 3] No resources to rank!");
     return { rankedResources: [] };
   }
 
@@ -164,6 +152,7 @@ For each selected resource:
 3. Write whyUseful: one line explaining why
   `;
 
+  recordAiCall("gemini-general", "roadmap.resource-ranker");
   const result = await structuredLlm.invoke(prompt);
   const ranked = result.resources;
 
@@ -179,7 +168,6 @@ For each selected resource:
 export async function roadmapFormatterNode(
   state: RoadmapAgentState,
 ): Promise<Partial<RoadmapAgentState>> {
-  console.log("[Node 4] roadmapFormatterNode running...");
 
   const weeks =
     state.level === "beginner" ? 4 : state.level === "intermediate" ? 6 : 8;
@@ -223,9 +211,8 @@ Rules:
 - Provide 2 interview questions per week relevant to that week's topic.
   `;
 
+  recordAiCall("gemini-general", "roadmap.formatter");
   const roadmap = await structuredLlm.invoke(prompt);
-
-  console.log(`[Node 4] Roadmap generated: ${roadmap.totalWeeks} weeks`);
   return { roadmap };
 }
 

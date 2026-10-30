@@ -32,9 +32,9 @@ async function baseFetch<T>(
     headers["Content-Type"] = "application/json";
   }
 
-  // Use AbortController for timeout management
+  // Use AbortController for timeout management (default 120s for AI workloads)
   const controller = new AbortController();
-  const timeoutMs = timeout || 30000; // Default 30s
+  const timeoutMs = timeout || 120000;
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { documentsApi } from "../lib/api/documents";
 import { useToast } from "../providers/ui-provider";
+import type { Document } from "../types";
 
 export const documentKeys = {
   all: ["documents"],
@@ -37,10 +38,23 @@ export function useDeleteDocument() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: (id: string) => documentsApi.delete(id),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: documentKeys.list() });
+      const previous = qc.getQueryData(documentKeys.list());
+      qc.setQueryData(documentKeys.list(), (documents: Document[] = []) =>
+        documents.filter((document) => document.id !== id),
+      );
+      return { previous };
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: documentKeys.list() });
       toast.info("Document deleted", "");
     },
-    onError: (e: any) => toast.error("Couldn't delete document", e?.message),
+    onError: (e: any, _id, context) => {
+      if (context?.previous) {
+        qc.setQueryData(documentKeys.list(), context.previous);
+      }
+      toast.error("Couldn't delete document", e?.message);
+    },
   });
 }

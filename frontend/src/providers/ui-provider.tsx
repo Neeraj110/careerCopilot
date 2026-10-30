@@ -44,10 +44,10 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
     info: (title: string, description?: string, opts?: any) => number;
   };
 
-  const toast = useCallback(
-    ({ title, description, variant = "info", duration = 4200 }: any = {}) => {
+  const createToast = useCallback(
+    ({ title, description, variant = "info", duration = 4200, action }: any = {}) => {
       const id = nextId();
-      setToasts((prev) => [...prev, { id, title, description, variant }]);
+      setToasts((prev) => [...prev.slice(-2), { id, title, description, variant, action }]);
       if (duration > 0) {
         const timer = setTimeout(() => dismiss(id), duration);
         timers.current.set(id, timer);
@@ -55,15 +55,16 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
       return id;
     },
     [dismiss]
-  ) as ToastFn;
+  );
 
-  // Convenience helpers
-  toast.success = (title: string, description?: string, opts?: any) =>
-    toast({ title, description, variant: "success", ...opts });
-  toast.error = (title: string, description?: string, opts?: any) =>
-    toast({ title, description, variant: "error", ...opts });
-  toast.info = (title: string, description?: string, opts?: any) =>
-    toast({ title, description, variant: "info", ...opts });
+  const toast = Object.assign(createToast, {
+    success: (title: string, description?: string, opts?: any) =>
+      createToast({ title, description, variant: "success", ...opts }),
+    error: (title: string, description?: string, opts?: any) =>
+      createToast({ title, description, variant: "error", ...opts }),
+    info: (title: string, description?: string, opts?: any) =>
+      createToast({ title, description, variant: "info", ...opts }),
+  }) as ToastFn;
 
   useEffect(() => {
     return () => {
@@ -121,6 +122,17 @@ function ToastViewport({ toasts, dismiss }: { toasts: any[]; dismiss: (id: numbe
                   <div className="text-xs text-[var(--ink-muted)] mt-0.5 leading-snug">
                     {t.description}
                   </div>
+                )}
+                {t.action && (
+                  <button
+                    onClick={() => {
+                      dismiss(t.id);
+                      t.action.onClick();
+                    }}
+                    className="mt-2 text-xs font-semibold text-[var(--v2-accent-strong)] hover:underline"
+                  >
+                    {t.action.label}
+                  </button>
                 )}
               </div>
               <button
