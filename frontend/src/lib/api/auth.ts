@@ -12,9 +12,9 @@ export const authApi = {
       skipAuth: true,
     }),
 
-  logout: () => api.post<{ message: string }>("/auth/logout"),
+  logout: () => api.post<{ message: string }>("/auth/logout", undefined, { skipErrorToast: true }),
 
-  getProfile: () => api.get<ApiResponse<User>>("/auth/profile"),
+  getProfile: () => api.get<ApiResponse<User>>("/auth/profile", { skipErrorToast: true }),
 
   updateProfile: (data: { name: string }) => api.put<ApiResponse<User>>("/auth/profile", data),
 

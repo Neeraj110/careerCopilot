@@ -36,8 +36,8 @@ function ProfileSection() {
     try {
       await updateProfile({ name: name.trim() });
       toast.success("Profile updated", "");
-    } catch (err: any) {
-      toast.error("Couldn't update profile", err?.message);
+    } catch (err) {
+      console.error("Couldn't update profile:", err);
     } finally {
       setSaving(false);
     }
@@ -188,8 +188,8 @@ function PasswordSection() {
       setCurrent("");
       setNext("");
       setConfirm("");
-    } catch (err: any) {
-      toast.error("Couldn't change password", err?.message);
+    } catch (err) {
+      console.error("Couldn't change password:", err);
     } finally {
       setSaving(false);
     }

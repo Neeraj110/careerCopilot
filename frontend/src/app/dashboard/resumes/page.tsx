@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FileText, AlertTriangle } from "lucide-react";
+import { FileText } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardTitle, CardDescription, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,6 +15,7 @@ import { resumeApi } from "@/lib/api/resume";
 import { resumesApi } from "@/lib/api/resumes-v2";
 import type { Document } from "@/types";
 import { useState, useEffect } from "react";
+import { useToast } from "@/providers/ui-provider";
 
 export default function Resumes() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function Resumes() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     documentsApi.getAll().then(res => setDocuments((res.data as unknown as Document[]) || [])).catch(console.error);
@@ -31,20 +32,19 @@ export default function Resumes() {
   async function handleCreate() {
     if (!selectedDocId) return;
     setIsCreating(true);
-    setErrorMessage(null);
     try {
       const res = await resumesApi.createFromDocument(selectedDocId);
       const r = res as any;
       const newResumeId = r?.resume?.id || r?.resume?._id || r?.id || r?._id;
       if (newResumeId) {
+        toast.success("Resume created", "Version V1 is ready.");
         router.push(`/dashboard/resumes/${newResumeId}`);
       } else {
-        setErrorMessage("Resume created but ID was not returned.");
+        toast.error("Resume creation failed", "The server did not return a resume ID.");
         setIsCreating(false);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to create resume:", err);
-      setErrorMessage(err?.message || "Failed to create resume from document. Please try again.");
       setIsCreating(false);
     }
   }
@@ -96,13 +96,6 @@ export default function Resumes() {
                   Upload one in Documents
                 </button>
               </div>
-
-              {errorMessage && (
-                <div className="flex items-center gap-2 p-3 text-xs rounded-md bg-red-500/10 text-red-500 border border-red-500/20">
-                  <AlertTriangle className="h-4 w-4 shrink-0" />
-                  <span>{errorMessage}</span>
-                </div>
-              )}
 
               <Button 
                 onClick={handleCreate} 

@@ -29,6 +29,7 @@ import { documentsApi } from "@/lib/api/documents";
 import type { Chat, Message, Document } from "@/types";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useToast } from "@/providers/ui-provider";
 
 const PreBlock = ({ children, ...props }: any) => {
   const [isCopied, setIsCopied] = useState(false);
@@ -81,6 +82,7 @@ export default function ChatPage() {
   const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   // Fetch initial data
   useEffect(() => {
@@ -139,6 +141,7 @@ export default function ChatPage() {
       setActiveDocumentId(null);
       setIsNewChatDialogOpen(false);
       setNewChatTitle("");
+      toast.success("Chat created");
     } catch (error) {
       console.error("Failed to create chat:", error);
     }
@@ -148,6 +151,7 @@ export default function ChatPage() {
     try {
       await chatApi.delete(chatId);
       setChats(chats.filter((c) => c.id !== chatId));
+      toast.success("Chat deleted");
       if (activeChatId === chatId) {
         const remainingChats = chats.filter((c) => c.id !== chatId);
         if (remainingChats.length > 0) {
@@ -192,6 +196,7 @@ export default function ChatPage() {
         setChats([res.data, ...chats]);
         currentChatId = res.data.id;
         setActiveChatId(currentChatId);
+        toast.success("Chat created");
       } catch (error) {
         console.error("Failed to create chat:", error);
         return;

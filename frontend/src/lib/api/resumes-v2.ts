@@ -113,7 +113,9 @@ export const resumesApi = {
 
   analysisForVersion: (id: string, versionId: string) =>
     api
-      .get<any>(`/resumes/${id}/versions/${versionId}/analysis`)
+      .get<any>(`/resumes/${id}/versions/${versionId}/analysis`, {
+        skipErrorToast: true,
+      })
       .then((r) => ({ analysis: normalizeAnalysis(r.data?.analysis ?? r.analysis) })),
 
   rewrite: (id: string, body: { analysisId: string; rewriteIds?: string[] }) =>

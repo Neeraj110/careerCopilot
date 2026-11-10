@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, AlertCircle, Info, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { subscribeToAppToasts } from "@/lib/toast-events";
 
 const UIContext = createContext<any>(null);
 
@@ -67,11 +68,13 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   }) as ToastFn;
 
   useEffect(() => {
+    const unsubscribe = subscribeToAppToasts(createToast);
     return () => {
+      unsubscribe();
       timers.current.forEach((t) => clearTimeout(t));
       timers.current.clear();
     };
-  }, []);
+  }, [createToast]);
 
   return (
     <UIContext.Provider value={{ toast, dismiss }}>

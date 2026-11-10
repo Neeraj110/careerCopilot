@@ -29,7 +29,6 @@ export function useUploadDocument() {
         `Successfully uploaded ${data?.title || "file"}`
       );
     },
-    onError: (e: any) => toast.error("Upload failed", e?.message),
   });
 }
 
@@ -48,13 +47,12 @@ export function useDeleteDocument() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: documentKeys.list() });
-      toast.info("Document deleted", "");
+      toast.success("Document deleted");
     },
     onError: (e: any, _id, context) => {
       if (context?.previous) {
         qc.setQueryData(documentKeys.list(), context.previous);
       }
-      toast.error("Couldn't delete document", e?.message);
     },
   });
 }

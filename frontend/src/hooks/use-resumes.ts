@@ -65,7 +65,6 @@ export function useUploadResume() {
         `${data?.resume?.title || "Resume"} · parsed and ready as V1`
       );
     },
-    onError: (e: any) => toast.error("Upload failed", e?.message),
   });
 }
 
@@ -88,7 +87,6 @@ export function useAnalyzeResume(id: string) {
         `ATS score ${data?.analysis?.atsScore ?? "—"} / 100`
       );
     },
-    onError: (e: any) => toast.error("Analysis failed", e?.message),
   });
 }
 
@@ -108,7 +106,6 @@ export function useApplyRewrites(id: string) {
         `${data?.version?.label || "New version"} created`
       );
     },
-    onError: (e: any) => toast.error("Couldn't apply rewrites", e?.message),
   });
 }
 
@@ -128,13 +125,12 @@ export function useDeleteResume() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: resumeKeys.list() });
       qc.invalidateQueries({ queryKey: dashboardKey });
-      toast.info("Resume deleted", "");
+      toast.success("Resume deleted");
     },
     onError: (e: any, _id, context) => {
       if (context?.previous) {
         qc.setQueryData(resumeKeys.list(), context.previous);
       }
-      toast.error("Couldn't delete resume", e?.message);
     },
   });
 }

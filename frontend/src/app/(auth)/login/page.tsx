@@ -9,10 +9,12 @@ import { loginSchema, type LoginFormValues } from "@/lib/validations";
 import { Loader2 } from "lucide-react";
 import { API_URL } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/providers/ui-provider";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isLoading, error, clearError } = useAuth();
+  const { login, isLoading } = useAuth();
+  const { toast } = useToast();
 
   const {
     register,
@@ -25,9 +27,10 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormValues) => {
     try {
       await login(data.email, data.password);
+      toast.success("Signed in", "Welcome back.");
       router.push("/dashboard");
     } catch {
-      // Error handled by store
+      // The API client displays request errors through the global toast.
     }
   };
 
@@ -39,15 +42,6 @@ export default function LoginPage() {
       <p className="mb-8 text-muted-foreground">
         Sign in to your CareerPilot AI account
       </p>
-
-      {error && (
-        <div className="mb-6 rounded-lg border border-danger/20 bg-danger-muted px-4 py-3 text-sm text-danger">
-          {error}
-          <button onClick={clearError} className="ml-2 underline">
-            Dismiss
-          </button>
-        </div>
-      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div>

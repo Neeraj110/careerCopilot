@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+import { ZodError } from 'zod';
 
 export class AppError extends Error {
   public statusCode: number;
@@ -18,14 +19,37 @@ export const errorHandler: ErrorRequestHandler = (
 ) => {
   console.error('[Error]:', err);
 
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
+  const isAppError = err instanceof AppError;
+  const isValidationError = err instanceof ZodError;
+  const isDatabaseUnavailable = err.code === 'P1001';
+  const isDuplicateRecord = err.code === 'P2002';
+  const statusCode = isAppError
+    ? err.statusCode
+    : isValidationError
+      ? 400
+      : isDatabaseUnavailable
+        ? 503
+        : isDuplicateRecord
+          ? 409
+          : err.statusCode >= 400 && err.statusCode < 500
+            ? err.statusCode
+            : 500;
+  const message = isAppError
+    ? err.message
+    : isValidationError
+      ? err.issues.map((issue) => issue.message).join(', ')
+      : isDatabaseUnavailable
+        ? 'The database is temporarily unavailable. Please try again shortly.'
+        : isDuplicateRecord
+          ? 'A record with these details already exists.'
+          : statusCode >= 500
+            ? 'Something went wrong. Please try again.'
+            : err.message || 'Request failed';
 
   const errResponse = {
     status: 'error',
     statusCode,
     message,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   };
 
   if (res.headersSent) {

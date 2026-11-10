@@ -52,8 +52,8 @@ export function UploadDropzone({ onUploaded, compact = false }: UploadDropzonePr
       setFile(null);
       setTitle("");
       onUploaded?.((data as any).resume);
-    } catch (e: any) {
-      setErr(e.message || "Upload failed");
+    } catch (error) {
+      console.error("Resume upload failed:", error);
     }
   }
 

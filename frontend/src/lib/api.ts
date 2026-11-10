@@ -1,9 +1,11 @@
 import { API_URL } from "./utils";
+import { dispatchAppToast } from "./toast-events";
 
 // ─── Base Fetch Wrapper ──────────────────────────────────────────
 
 interface FetchOptions extends RequestInit {
   skipAuth?: boolean;
+  skipErrorToast?: boolean;
   timeout?: number; // ms, default 30000
 }
 
@@ -21,7 +23,7 @@ async function baseFetch<T>(
   endpoint: string,
   options: FetchOptions = {},
 ): Promise<T> {
-  const { skipAuth, timeout, ...fetchOptions } = options;
+  const { skipAuth, skipErrorToast, timeout, ...fetchOptions } = options;
 
   const headers: Record<string, string> = {
     ...(fetchOptions.headers as Record<string, string>),
@@ -47,13 +49,37 @@ async function baseFetch<T>(
 
     if (!res.ok) {
       const error = await res.json().catch(() => ({ message: "Request failed" }));
-      throw new ApiError(res.status, error.message || `Error ${res.status}`);
+      const message =
+        res.status >= 500
+          ? "Something went wrong. Please try again."
+          : error.message || `Request failed (${res.status})`;
+      throw new ApiError(res.status, message);
     }
 
     // Handle empty responses (204 No Content)
     if (res.status === 204) return {} as T;
 
-    return res.json();
+    return await res.json();
+  } catch (error) {
+    const apiError =
+      error instanceof ApiError
+        ? error
+        : new ApiError(
+            0,
+            error instanceof Error && error.name === "AbortError"
+              ? "The request timed out. Please try again."
+              : "Unable to connect to the server. Check your connection and try again.",
+          );
+
+    if (!skipErrorToast) {
+      dispatchAppToast({
+        title: apiError.status >= 500 ? "Server error" : "Request failed",
+        description: apiError.message,
+        variant: "error",
+      });
+    }
+
+    throw apiError;
   } finally {
     clearTimeout(timeoutId);
   }
@@ -96,5 +122,4 @@ export const api = {
       body: formData,
     }),
 };
-
 

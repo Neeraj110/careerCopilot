@@ -20,6 +20,7 @@ import { motion } from "framer-motion";
 import { documentsApi } from "@/lib/api/documents";
 import { resumeApi } from "@/lib/api/resume";
 import type { Document, ATSResult } from "@/types";
+import { useToast } from "@/providers/ui-provider";
 
 export default function ResumeAnalyzerPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -27,6 +28,7 @@ export default function ResumeAnalyzerPage() {
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<ATSResult | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchDocs = async () => {
@@ -47,6 +49,7 @@ export default function ResumeAnalyzerPage() {
     try {
       const res = await resumeApi.checkATS(selectedDocId);
       setResult(res.data);
+      toast.success("Resume analysis complete", "Your ATS results are ready.");
     } catch (err) {
       console.error("Failed to analyze resume", err);
     } finally {

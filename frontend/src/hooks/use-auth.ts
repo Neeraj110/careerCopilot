@@ -9,14 +9,12 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   isCheckingAuth: boolean;
-  error: string | null;
 
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loadUser: () => Promise<void>;
   updateProfile: (data: { name: string }) => Promise<void>;
-  clearError: () => void;
 }
 
 export const useAuth = create<AuthState>((set) => ({
@@ -24,10 +22,9 @@ export const useAuth = create<AuthState>((set) => ({
   isAuthenticated: false,
   isLoading: false,
   isCheckingAuth: true,
-  error: null,
 
   login: async (email, password) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true });
     try {
       const res = await authApi.login({ email, password });
       set({
@@ -36,16 +33,13 @@ export const useAuth = create<AuthState>((set) => ({
         isLoading: false,
       });
     } catch (err) {
-      set({
-        error: err instanceof Error ? err.message : "Login failed",
-        isLoading: false,
-      });
+      set({ isLoading: false });
       throw err;
     }
   },
 
   register: async (name, email, password) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true });
     try {
       const res = await authApi.register({ name, email, password });
       set({
@@ -54,10 +48,7 @@ export const useAuth = create<AuthState>((set) => ({
         isLoading: false,
       });
     } catch (err) {
-      set({
-        error: err instanceof Error ? err.message : "Registration failed",
-        isLoading: false,
-      });
+      set({ isLoading: false });
       throw err;
     }
   },
@@ -94,5 +85,4 @@ export const useAuth = create<AuthState>((set) => ({
     }
   },
 
-  clearError: () => set({ error: null }),
 }));

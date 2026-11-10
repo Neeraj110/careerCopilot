@@ -24,6 +24,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { roadmapApi } from "@/lib/api/roadmap";
 import type { RoadmapResult, SavedRoadmap, SkillLevel } from "@/types";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/providers/ui-provider";
 
 export default function RoadmapsPage() {
   const [skill, setSkill] = useState("");
@@ -38,6 +39,7 @@ export default function RoadmapsPage() {
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [isLoadingRoadmap, setIsLoadingRoadmap] = useState(false);
   const [isCreatingNew, setIsCreatingNew] = useState(true);
+  const { toast } = useToast();
 
   // Fetch saved roadmaps
   const fetchSavedRoadmaps = async (selectFirst = false) => {
@@ -93,6 +95,7 @@ export default function RoadmapsPage() {
       const res = await roadmapApi.generate({ skill, level: level as SkillLevel, targetGoal: goal });
       const newRoadmap = res.data;
       setRoadmapData(newRoadmap);
+      toast.success("Roadmap generated", "Your personalized learning path is ready.");
       
       // Refresh the list and select the newly generated roadmap
       await fetchSavedRoadmaps(false);
