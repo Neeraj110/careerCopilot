@@ -9,11 +9,11 @@ on:
 
 jobs:
   # --------------------------------------------------
-  # 1. Backend: Install, Prisma Generate & Build
+  # 1. Backend: Install & Build
   # --------------------------------------------------
   backend:
     name: Backend Build
-    runs-on: ubuntu
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: backend
@@ -32,9 +32,6 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Generate Prisma Client
-        run: npx prisma generate
-
       - name: Build Backend
         run: npm run build
 
@@ -43,7 +40,7 @@ jobs:
   # --------------------------------------------------
   frontend:
     name: Frontend Build
-    runs-on: ubuntu
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: frontend

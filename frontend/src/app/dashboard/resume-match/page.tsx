@@ -102,7 +102,7 @@ export default function ResumeMatchPage() {
                     </div>
                     <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-[300px]">
+                  <DropdownMenuContent align="start" className="w-75">
                     {documents.map(doc => (
                       <DropdownMenuItem key={doc.id} onClick={() => setSelectedDocId(doc.id)}>
                         <span className="truncate">{doc.title}</span>
@@ -120,7 +120,7 @@ export default function ResumeMatchPage() {
               <label className="text-sm font-medium">2. Paste Job Description</label>
               <Textarea 
                 placeholder="Paste the job requirements and responsibilities here..."
-                className="h-[250px] min-h-[250px] max-h-[400px] resize-y overflow-y-auto [field-sizing:fixed]"
+                className="h-62.5 min-h-62.5 max-h-100 resize-y overflow-y-auto field-sizing-fixed"
                 maxLength={20_000}
                 value={jd}
                 onChange={(e) => setJd(e.target.value)}
@@ -146,7 +146,7 @@ export default function ResumeMatchPage() {
             className="flex flex-col gap-6"
           >
             <Card className="overflow-hidden relative border-accent-v2/30 hover:border-accent-v2/50">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-linear-to-br from-primary/10 to-transparent pointer-events-none" />
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Target className="h-5 w-5 text-primary" /> Match Score
@@ -240,7 +240,7 @@ export default function ResumeMatchPage() {
               </Card>
             )}
             <Card className="overflow-hidden relative border-accent-strong/30 hover:border-accent-strong/50">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-linear-to-br from-blue-500/5 to-transparent pointer-events-none" />
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Wand2 className="h-5 w-5 text-blue-500" /> Auto-Improved Bullets
@@ -287,7 +287,7 @@ export default function ResumeMatchPage() {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/40 bg-card/10 backdrop-blur-xl p-12 text-center h-full min-h-[400px] shadow-xl shadow-black/20"
+            className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/40 bg-card/10 backdrop-blur-xl p-12 text-center h-full min-h-100 shadow-xl shadow-black/20"
           >
             {isAnalyzing ? (
               <>
