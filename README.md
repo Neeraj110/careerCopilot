@@ -38,7 +38,6 @@
 - **AI/LLM:** [LangChain](https://js.langchain.com/) (`@langchain/google-genai`, `@langchain/langgraph`, `@langchain/tavily`)
 - **Auth:** [Passport.js](https://www.passportjs.org/) (Google OAuth 2.0) & JWT
 - **Validation:** [Zod](https://zod.dev/)
-- **API Docs:** [Swagger](https://swagger.io/)
 
 ---
 

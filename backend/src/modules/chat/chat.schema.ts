@@ -11,7 +11,7 @@ export const updateChatSchema = z.object({
 });
 
 export const sendMessageSchema = z.object({
-  content: z.string().min(1, "Message cannot be empty"),
+  content: z.string().trim().min(1, "Message cannot be empty").max(10_000),
   documentId: z.string().uuid("Invalid document ID").nullable().optional(),
 });
 

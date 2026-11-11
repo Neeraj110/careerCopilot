@@ -4,6 +4,7 @@ import {
   recordAiCall,
   isTransientAiError,
   withAiRetry,
+  withAiGuardrails,
 } from "../../infrastructure/ai";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { z } from "zod";
@@ -220,6 +221,9 @@ export const analyzeVersion = async (
   if (!version) throw new AppError("Version not found", 404);
 
   const resumeText = version.rawText || JSON.stringify(version.parsedSections);
+  if (resumeText.length > 50_000) {
+    throw new AppError("Resume text exceeds the 50,000 character AI analysis limit", 413);
+  }
 
   const AnalysisSchema = z.object({
     atsScore: z.number(),
@@ -264,9 +268,9 @@ ${resumeText}`;
     recordAiCall("gemini-resume", "resume-v2.analyze");
     parsed = await withAiRetry(() =>
       structuredLlm.invoke([
-        new SystemMessage(
+        new SystemMessage(withAiGuardrails(
           "You are an expert ATS analyst. Score resumes, find issues, suggest rewrites.",
-        ),
+        )),
         new HumanMessage(prompt),
       ]),
     );
@@ -740,18 +744,22 @@ const ParsedResumeSchema = z.object({
 });
 
 export async function parseResumeWithAI(rawText: string) {
+  if (rawText.length > 50_000) {
+    throw new AppError("Resume text exceeds the 50,000 character AI parsing limit", 413);
+  }
+
   const structuredLlm = llm.withStructuredOutput(ParsedResumeSchema, { name: "parse_resume" });
   
   try {
     recordAiCall("gemini-resume", "resume-v2.parse");
     return await withAiRetry(() =>
       structuredLlm.invoke([
-        new SystemMessage(
+        new SystemMessage(withAiGuardrails(
           "You are an expert resume parser. Parse resume text into structured sections. " +
           "Extract all information accurately: candidate contact info (including GitHub, LinkedIn, Portfolio), " +
           "categorized skills with 'Category: item1, item2, ...' (e.g. 'Frontend: React.js, Next.js', 'Backend: Node.js, Express.js', 'AI Tools: LangChain, Gemini API', 'Tools & Platforms: Git, Postman'), " +
-          "all experience bullet points, all project details (name, subtitle, live link, bullets, and tech stack), and education details (degree, school, year, score/cgpa)."
-        ),
+          "all experience bullet points, all project details (name, subtitle, live link, bullets, and tech stack), and education details (degree, school, year, score/cgpa).",
+        )),
         new HumanMessage(`Parse this resume:\n\n${rawText}`),
       ]),
     );

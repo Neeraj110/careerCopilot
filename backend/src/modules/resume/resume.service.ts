@@ -3,40 +3,74 @@ import {
   recordAiCall,
   withAiRetry,
   isTransientAiError,
+  withAiGuardrails,
 } from "../../infrastructure/ai";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
+import { z } from "zod";
 import { prisma } from "../../infrastructure/prisma";
 import { AppError } from "../../middlewares/errorHandler";
 import { config } from "../../config";
 import { buildImprovementAgent } from "./agent/improvement.agent";
-
-function parseLLMJson<T>(content: string): T {
-  const cleaned = content
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/```\s*$/i, "")
-    .trim();
-  return JSON.parse(cleaned);
-}
 
 const rawSearchGroundedModel = createGeminiModel(
   config.geminiApiKey,
   config.geminiModel,
 );
 
-const searchGroundedModel = {
-  invoke: (messages: any, options?: any) => {
-    recordAiCall("gemini-resume", "resume.ats-analysis");
-    return rawSearchGroundedModel.invoke(messages, options);
-  },
-};
+const atsResultSchema = z.object({
+  atsScore: z.number().min(0).max(100),
+  role: z.string(),
+  missingKeywords: z.array(z.string()).default([]),
+  presentKeywords: z.array(z.string()).default([]),
+  industryTrends: z.array(z.string()).default([]),
+  formattingIssues: z.array(z.string()).default([]),
+  improvements: z.array(z.object({
+    section: z.string(),
+    current: z.string(),
+    suggested: z.string(),
+    reason: z.string(),
+  })).default([]),
+  overallFeedback: z.string().default(""),
+});
 
-export const checkATS = async (userId: string, documentId: string) => {
+const jdMatchResultSchema = z.object({
+  matchScore: z.number().min(0).max(100),
+  role: z.string(),
+  strengths: z.array(z.string()).default([]),
+  missingSkills: z.array(z.string()).default([]),
+  partialMatches: z.array(z.object({
+    required: z.string(),
+    candidate: z.string(),
+    gap: z.string(),
+  })).default([]),
+  recommendations: z.array(z.object({
+    skill: z.string(),
+    reason: z.string(),
+    resource: z.string().default(""),
+  })).default([]),
+  keywordsMissing: z.array(z.string()).default([]),
+  overallFeedback: z.string().default(""),
+});
+
+const atsAnalysisModel = rawSearchGroundedModel.withStructuredOutput(
+  atsResultSchema,
+  { name: "ResumeATSAnalysis" },
+);
+const jdMatchModel = rawSearchGroundedModel.withStructuredOutput(
+  jdMatchResultSchema,
+  { name: "ResumeJDMatch" },
+);
+
+function getChunkIndex(metadata: unknown): number {
+  if (typeof metadata !== "object" || metadata === null) return 0;
+  const index = (metadata as Record<string, unknown>).chunkIndex;
+  return typeof index === "number" ? index : 0;
+}
+
+async function getCompletedResumeText(userId: string, documentId: string) {
   const document = await prisma.document.findFirst({
     where: { id: documentId, userId },
-    include: {
-      chunks: true,
-    },
+    include: { chunks: true },
   });
 
   if (!document) throw new AppError("Document not found", 404);
@@ -44,18 +78,25 @@ export const checkATS = async (userId: string, documentId: string) => {
     throw new AppError("Document still processing", 400);
 
   const resumeText = document.chunks
-    .sort(
-      (a: { metadata: unknown }, b: { metadata: unknown }) =>
-        ((a.metadata as Record<string, any>)?.chunkIndex ?? 0) -
-        ((b.metadata as Record<string, any>)?.chunkIndex ?? 0),
-    )
+    .sort((a, b) => getChunkIndex(a.metadata) - getChunkIndex(b.metadata)) // Sort chunks by index
     .map((chunk: { content: string }) => chunk.content)
     .join("\n");
 
+  if (resumeText.length > 50_000) {
+    throw new AppError("Resume text exceeds the 50,000 character AI analysis limit", 413);
+  }
+
+  return resumeText;
+}
+
+export const checkATS = async (userId: string, documentId: string) => {
+  const resumeText = await getCompletedResumeText(userId, documentId);
+
   try {
-    const response = await withAiRetry(() =>
-      searchGroundedModel.invoke([
-        new SystemMessage(`
+    const response = await withAiRetry(async () => {
+      recordAiCall("gemini-resume", "resume.ats-analysis");
+      return atsAnalysisModel.invoke([
+        new SystemMessage(withAiGuardrails(`
       You are an expert ATS (Applicant Tracking System) analyst with 
       access to real-time industry hiring data via Google Search.
       
@@ -65,27 +106,8 @@ export const checkATS = async (userId: string, documentId: string) => {
       3. Identify missing keywords that modern ATS systems flag
       4. Give actionable improvements based on 2025-2026 hiring trends
       
-      Always respond in this exact JSON format:
-      {
-        "atsScore": <number 0-100>,
-        "role": "<detected role>",
-        "missingKeywords": ["keyword1", "keyword2"],
-        "presentKeywords": ["keyword1", "keyword2"],
-        "industryTrends": ["trend1", "trend2"],
-        "formattingIssues": ["issue1", "issue2"],
-        "improvements": [
-          {
-            "section": "Skills",
-            "current": "...",
-            "suggested": "...",
-            "reason": "..."
-          }
-        ],
-        "overallFeedback": "..."
-      }
-      
-      Return ONLY valid JSON, no markdown, no explanation outside JSON.
-    `),
+      Follow the structured output schema.
+    `)),
         new HumanMessage(`
       Analyze this resume using current industry standards.
       Search for latest ATS requirements and hiring trends for this role.
@@ -93,15 +115,10 @@ export const checkATS = async (userId: string, documentId: string) => {
       RESUME:
       ${resumeText}
     `),
-      ]),
-    );
+      ]);
+    });
 
-    const content =
-      typeof response.content === "string"
-        ? response.content
-        : JSON.stringify(response.content);
-
-    return parseLLMJson(content);
+    return response;
   } catch (error) {
     if (isTransientAiError(error)) {
       throw new AppError("AI is busy, please retry in a moment", 503);
@@ -117,59 +134,20 @@ export const jdMatch = async (
   documentId: string,
   jd: string,
 ) => {
-  // 1. Document + chunks fetch
-  const document = await prisma.document.findFirst({
-    where: { id: documentId, userId },
-    include: { chunks: true },
-  });
+  const resumeText = await getCompletedResumeText(userId, documentId);
 
-  if (!document) throw new AppError("Document not found", 404);
-  if (document.status !== "COMPLETED")
-    throw new AppError("Document still processing", 400);
-
-  // 2. Sort chunks by index and join
-  const resumeText = document.chunks
-    .sort(
-      (a: { metadata: unknown }, b: { metadata: unknown }) =>
-        ((a.metadata as Record<string, any>)?.chunkIndex ?? 0) -
-        ((b.metadata as Record<string, any>)?.chunkIndex ?? 0),
-    )
-    .map((chunk: { content: string }) => chunk.content)
-    .join("\n");
-
-  // 3. JD Match specific prompt
   try {
-    const response = await withAiRetry(() =>
-      searchGroundedModel.invoke([
-        new SystemMessage(`
+    const response = await withAiRetry(async () => {
+      recordAiCall("gemini-resume", "resume.jd-match");
+      return jdMatchModel.invoke([
+        new SystemMessage(withAiGuardrails(`
       You are an expert recruiter and ATS specialist.
       You compare resumes against job descriptions to find match scores and gaps.
       You have access to Google Search to verify current skill requirements.
 
-      Always respond in this exact JSON format, no markdown, no extra text:
-      {
-        "matchScore": <number 0-100>,
-        "role": "<role from JD>",
-        "strengths": ["skill1", "skill2"],
-        "missingSkills": ["skill1", "skill2"],
-        "partialMatches": [
-          {
-            "required": "AWS",
-            "candidate": "basic cloud knowledge",
-            "gap": "No hands-on AWS experience"
-          }
-        ],
-        "recommendations": [
-          {
-            "skill": "GraphQL",
-            "reason": "Mentioned 3 times in JD, absent in resume",
-            "resource": "how to add GraphQL to resume"
-          }
-        ],
-        "keywordsMissing": ["keyword1", "keyword2"],
-        "overallFeedback": "..."
-      }
-    `),
+      Follow the structured output schema. Score only evidence found in the
+      original resume; never infer or invent candidate skills.
+    `)),
         new HumanMessage(`
       Compare this resume against the job description below.
       Search for current market relevance of required skills if needed.
@@ -180,16 +158,10 @@ export const jdMatch = async (
       RESUME:
       ${resumeText}
     `),
-      ]),
-    );
+      ]);
+    });
 
-    // 4. Parse response
-    const content =
-      typeof response.content === "string"
-        ? response.content
-        : JSON.stringify(response.content);
-
-    return parseLLMJson(content);
+    return response;
   } catch (error) {
     if (isTransientAiError(error)) {
       throw new AppError("AI is busy, please retry in a moment", 503);
@@ -205,23 +177,7 @@ export const improveResume = async (
   documentId: string,
   jdText: string,
 ) => {
-  const document = await prisma.document.findFirst({
-    where: { id: documentId, userId },
-    include: { chunks: true },
-  });
-
-  if (!document) throw new AppError("Document not found", 404);
-  if (document.status !== "COMPLETED")
-    throw new AppError("Document still processing", 400);
-
-  const resumeText = document.chunks
-    .sort(
-      (a: { metadata: unknown }, b: { metadata: unknown }) =>
-        ((a.metadata as Record<string, any>)?.chunkIndex ?? 0) -
-        ((b.metadata as Record<string, any>)?.chunkIndex ?? 0),
-    )
-    .map((chunk: { content: string }) => chunk.content)
-    .join("\n");
+  const resumeText = await getCompletedResumeText(userId, documentId);
 
   const agent = buildImprovementAgent();
 
@@ -231,6 +187,20 @@ export const improveResume = async (
   });
 
   return {
+    match: {
+      matchScore: response.matchScore,
+      role: response.role,
+      strengths: response.gaps.present,
+      missingSkills: response.gaps.missing,
+      partialMatches: response.gaps.partial.map((gap) => ({
+        required: gap.requirement,
+        candidate: gap.foundAs,
+        gap: `The resume only hints at "${gap.requirement}" as "${gap.foundAs}".`,
+      })),
+      recommendations: [],
+      keywordsMissing: response.gaps.missing,
+      overallFeedback: response.matchSummary,
+    },
     originalBullets: response.parsedBullets,
     improvedBullets: response.improvedBullets,
     validationScore: response.validationScore,

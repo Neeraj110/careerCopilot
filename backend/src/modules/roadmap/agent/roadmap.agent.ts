@@ -1,6 +1,11 @@
 import { Annotation, START, END, StateGraph } from "@langchain/langgraph";
-import { createGeminiModel, recordAiCall } from "../../../infrastructure/ai";
+import {
+  createGeminiModel,
+  recordAiCall,
+  withAiGuardrails,
+} from "../../../infrastructure/ai";
 import { TavilySearch } from "@langchain/tavily";
+import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
 import { config } from "../../../config";
 
@@ -62,22 +67,15 @@ export async function queryGeneratorNode(state: RoadmapAgentState) {
     name: "QueryGenerator",
   });
 
-  const prompt = `
-You are an expert learning coach.
-Generate exactly 6 specific Google search queries to find the BEST learning resources for:
-
-Skill: ${state.skill}
-Level: ${state.level}
-Goal: ${state.targetGoal}
-
-Rules:
-- Target: official documentation, top video tutorials, GitHub practice repositories, and deep-dive guides.
-- Include years 2025 or 2026 for recency.
-- Be specific, technical, and precise.
-  `;
-
   recordAiCall("gemini-general", "roadmap.query-generator");
-  const result = await structuredLlm.invoke(prompt);
+  const result = await structuredLlm.invoke([
+    new SystemMessage(withAiGuardrails(`
+      You are an expert learning coach. Generate exactly 6 specific search queries
+      for finding high-quality, current learning resources. Prefer official
+      documentation, tutorials, practice repositories, and technical guides.
+    `)),
+    new HumanMessage(`Skill: ${state.skill}\nLevel: ${state.level}\nGoal: ${state.targetGoal}`),
+  ]);
   return { searchQueries: result.queries };
 }
 
@@ -151,21 +149,21 @@ export async function resourceRankerNode(
     name: "ResourceRanker",
   });
 
-  const prompt = `
-You are a learning resource curator.
-From the resources below, select up to 16 of the highest quality resources for learning "${state.skill}" at "${state.level}" level.
-
-Raw Resources:
-${JSON.stringify(state.rawResources, null, 2)}
-
-Requirements:
-1. ONLY select items that exist in the raw list.
-2. Filter out paywalls, low-effort SEO spam, or dead homepages.
-3. Assign relevanceScore between 0 and 100.
-  `;
-
   recordAiCall("gemini-general", "roadmap.resource-ranker");
-  const result = await structuredLlm.invoke(prompt);
+  const result = await structuredLlm.invoke([
+    new SystemMessage(withAiGuardrails(`
+      You are a learning resource curator. Select up to 16 high-quality resources
+      for the requested skill and level. Use only resources present in the input,
+      preserve their titles and URLs exactly, filter out low-quality results, and
+      assign relevance scores from 0 to 100.
+    `)),
+    new HumanMessage(`
+      Skill: ${state.skill}
+      Level: ${state.level}
+      Raw resources:
+      ${JSON.stringify(state.rawResources, null, 2)}
+    `),
+  ]);
 
   const sorted = [...result.resources].sort(
     (a, b) => b.relevanceScore - a.relevanceScore,
@@ -204,26 +202,22 @@ export async function roadmapFormatterNode(
     name: "RoadmapFormatter",
   });
 
-  const prompt = `
-You are an expert learning path designer.
-Create a structured ${weeks}-week roadmap for:
-
-Skill: ${state.skill}
-Level: ${state.level}
-Goal: ${state.targetGoal}
-
-Available Resources to Map:
-${JSON.stringify(state.rankedResources, null, 2)}
-
-Strict Rules:
-- Only assign resource URLs that exist verbatim in the "Available Resources" list above. Do NOT hallucinate URLs.
-- Provide 1 actionable project per week.
-- Exactly 2 interview questions per week.
-- All descriptions should be concise and direct.
-  `;
-
   recordAiCall("gemini-general", "roadmap.formatter");
-  const roadmap = await structuredLlm.invoke(prompt);
+  const roadmap = await structuredLlm.invoke([
+    new SystemMessage(withAiGuardrails(`
+      You are an expert learning path designer. Create a structured ${weeks}-week
+      roadmap. Only use resource URLs provided in the input, exactly as written.
+      Include one actionable project and exactly two interview questions per week.
+      Keep descriptions concise.
+    `)),
+    new HumanMessage(`
+      Skill: ${state.skill}
+      Level: ${state.level}
+      Goal: ${state.targetGoal}
+      Available resources:
+      ${JSON.stringify(state.rankedResources, null, 2)}
+    `),
+  ]);
   return { roadmap };
 }
 

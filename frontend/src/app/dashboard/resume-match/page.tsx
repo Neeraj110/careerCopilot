@@ -32,7 +32,6 @@ export default function ResumeMatchPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<JDMatchResult | null>(null);
   
-  const [isImproving, setIsImproving] = useState(false);
   const [improveResult, setImproveResult] = useState<ImproveResult | null>(null);
   const { toast } = useToast();
 
@@ -42,35 +41,32 @@ export default function ResumeMatchPage() {
       .catch(console.error);
   }, []);
 
-  const handleAnalyze = async () => {
-    if (!jd || !selectedDocId) return;
+  const handleMatchAndImprove = async () => {
+    if (!jd.trim() || !selectedDocId) return;
     setIsAnalyzing(true);
     setResult(null);
     setImproveResult(null);
     try {
-      const res = await resumeApi.jdMatch(selectedDocId, jd);
-      setResult(res.data);
-      toast.success("Match analysis complete", "Your resume has been compared with the job description.");
-    } catch (err: any) {
-      console.error("Failed to analyze jd match", err);
+      const res = await resumeApi.improve(selectedDocId, jd.trim());
+      const match = res.data.match;
+      if (!match || typeof match.matchScore !== "number") {
+        throw new Error("The analysis response was incomplete.");
+      }
+      setResult({
+        ...match,
+        strengths: match.strengths ?? [],
+        missingSkills: match.missingSkills ?? [],
+        partialMatches: match.partialMatches ?? [],
+        recommendations: match.recommendations ?? [],
+        keywordsMissing: match.keywordsMissing ?? [],
+      });
+      setImproveResult(res.data);
+      toast.success("Match and suggestions ready", "Review your score and evidence-based resume suggestions.");
+    } catch (error) {
+      console.error("Failed to analyze and improve resume", error);
+      toast.error("Resume analysis failed", error instanceof Error ? error.message : "Please try again.");
     } finally {
       setIsAnalyzing(false);
-    }
-  };
-
-  const handleImprove = async () => {
-    if (!jd || !selectedDocId) return;
-    setIsImproving(true);
-    setResult(null);
-    setImproveResult(null);
-    try {
-      const res = await resumeApi.improve(selectedDocId, jd);
-      setImproveResult(res.data);
-      toast.success("Resume improvements ready", "Review the suggested bullet rewrites below.");
-    } catch (err: any) {
-      console.error("Failed to improve resume", err);
-    } finally {
-      setIsImproving(false);
     }
   };
 
@@ -125,33 +121,25 @@ export default function ResumeMatchPage() {
               <Textarea 
                 placeholder="Paste the job requirements and responsibilities here..."
                 className="h-[250px] min-h-[250px] max-h-[400px] resize-y overflow-y-auto [field-sizing:fixed]"
+                maxLength={20_000}
                 value={jd}
                 onChange={(e) => setJd(e.target.value)}
               />
+              <p className="text-right text-xs text-muted-foreground">{jd.length}/20,000</p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 w-full">
-              <Button 
-                className="flex-1 py-5" 
-                onClick={handleAnalyze} 
-                disabled={!jd || !selectedDocId || isAnalyzing || isImproving}
-              >
-                {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                {isAnalyzing ? "Analyzing..." : "Calculate Match Score"}
-              </Button>
-              <Button 
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white border-transparent py-5"
-                onClick={handleImprove} 
-                disabled={!jd || !selectedDocId || isAnalyzing || isImproving}
-              >
-                {isImproving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wand2 className="h-4 w-4 mr-2" />}
-                {isImproving ? "AI Improving..." : "Auto-Improve Resume"}
-              </Button>
-            </div>
+            <Button
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white border-transparent py-5"
+              onClick={handleMatchAndImprove}
+              disabled={!jd.trim() || !selectedDocId || isAnalyzing}
+            >
+              {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wand2 className="h-4 w-4 mr-2" />}
+              {isAnalyzing ? "Analyzing and preparing suggestions..." : "Calculate Match & Suggest Improvements"}
+            </Button>
           </CardContent>
         </Card>
 
-        {result && !isAnalyzing && !isImproving ? (
+        {result && improveResult && !isAnalyzing ? (
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -174,16 +162,19 @@ export default function ResumeMatchPage() {
                       {result.matchScore >= 80 ? "Strong Match" : result.matchScore >= 60 ? "Moderate Match" : "Weak Match"}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      {result.matchScore >= 80 
-                        ? "Your resume aligns well with the core requirements." 
-                        : "There are significant gaps between your resume and the job description."}
+                      {result.role ? `Target role: ${result.role}. ` : ""}
+                      {result.overallFeedback || (
+                        result.matchScore >= 80
+                          ? "Your resume aligns well with the core requirements."
+                          : "There are significant gaps between your resume and the job description."
+                      )}
                     </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {result.missingSkills.length > 0 && (
+            {(result.missingSkills ?? []).length > 0 && (
               <Card className="border-warning/30 hover:border-warning/50">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -192,20 +183,20 @@ export default function ResumeMatchPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
-                    {result.missingSkills.map(skill => (
+                    {(result.missingSkills ?? []).map(skill => (
                       <span key={skill} className="inline-flex items-center rounded-md bg-warning/10 px-2.5 py-1 text-sm font-medium text-warning border border-warning/20">
                         {skill}
                       </span>
                     ))}
                   </div>
                   <p className="mt-4 text-sm text-muted-foreground">
-                    The job description mentions these frequently. Consider adding them to your skills section or mentioning related experience if applicable.
+                    Only add these if they reflect real experience. Otherwise, use them as a guide for skills to develop.
                   </p>
                 </CardContent>
               </Card>
             )}
 
-            {result.strengths.length > 0 && (
+            {(result.strengths ?? []).length > 0 && (
               <Card className="border-success/30 hover:border-success/50">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -214,7 +205,7 @@ export default function ResumeMatchPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
-                    {result.strengths.map(skill => (
+                    {(result.strengths ?? []).map(skill => (
                       <span key={skill} className="inline-flex items-center rounded-md bg-success/10 px-2.5 py-1 text-sm font-medium text-success border border-success/20">
                         {skill}
                       </span>
@@ -224,7 +215,7 @@ export default function ResumeMatchPage() {
               </Card>
             )}
 
-            {result.recommendations.length > 0 && (
+            {(result.recommendations ?? []).length > 0 && (
               <Card className="border-accent-v2/30 hover:border-accent-v2/50">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -233,7 +224,7 @@ export default function ResumeMatchPage() {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2 text-sm text-muted-foreground list-disc pl-4">
-                    {result.recommendations.map((rec, i) => (
+                    {(result.recommendations ?? []).map((rec, i) => (
                       <li key={i}>
                         <span className="font-medium text-foreground">{rec.skill}: </span>
                         {rec.reason}
@@ -248,13 +239,6 @@ export default function ResumeMatchPage() {
                 </CardContent>
               </Card>
             )}
-          </motion.div>
-        ) : improveResult && !isImproving && !isAnalyzing ? (
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex flex-col gap-6"
-          >
             <Card className="overflow-hidden relative border-accent-strong/30 hover:border-accent-strong/50">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent pointer-events-none" />
               <CardHeader className="pb-2">
@@ -266,7 +250,7 @@ export default function ResumeMatchPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {improveResult.improvedBullets.map((bullet, i) => (
+                {(improveResult.improvedBullets ?? []).map((bullet, i) => (
                   <div key={i} className="flex flex-col gap-3 rounded-lg border border-border/40 bg-muted/10 backdrop-blur-sm p-4 relative shadow-sm">
                     <div className="flex gap-3 items-start opacity-70">
                       <div className="mt-0.5 rounded-full bg-danger/10 p-1 shrink-0">
@@ -308,17 +292,9 @@ export default function ResumeMatchPage() {
             {isAnalyzing ? (
               <>
                 <Loader2 className="mb-4 h-12 w-12 text-primary animate-spin" />
-                <h3 className="text-lg font-medium">Analyzing match...</h3>
+                <h3 className="text-lg font-medium">Scoring and preparing suggestions...</h3>
                 <p className="mt-2 text-sm text-muted-foreground max-w-sm">
-                  Comparing your resume against the job description requirements.
-                </p>
-              </>
-            ) : isImproving ? (
-              <>
-                <Wand2 className="mb-4 h-12 w-12 text-blue-500 animate-pulse" />
-                <h3 className="text-lg font-medium">AI is improving your resume...</h3>
-                <p className="mt-2 text-sm text-muted-foreground max-w-sm">
-                  This takes a moment as our agents iterate and validate the rewrites against the JD.
+                  Comparing your resume with the job description and checking each suggested rewrite.
                 </p>
               </>
             ) : (
@@ -326,7 +302,7 @@ export default function ResumeMatchPage() {
                 <Target className="mb-4 h-12 w-12 text-muted-foreground/50" />
                 <h3 className="text-lg font-medium text-muted-foreground">Awaiting Input</h3>
                 <p className="mt-2 text-sm text-muted-foreground max-w-sm">
-                  Select a document, paste a job description, and choose an action to analyze or automatically improve your resume.
+                  Select a document and paste a job description to get your match score and tailored suggestions together.
                 </p>
               </>
             )}

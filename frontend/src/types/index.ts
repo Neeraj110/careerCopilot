@@ -124,6 +124,7 @@ export interface JDRecommendation {
 }
 
 export interface ImproveResult {
+  match: JDMatchResult;
   originalBullets: string[];
   improvedBullets: {
     original: string;

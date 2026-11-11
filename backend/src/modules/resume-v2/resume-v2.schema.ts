@@ -6,7 +6,7 @@ export const uploadResumeSchema = z.object({
 
 export const analyzeResumeSchema = z.object({
   versionId: z.string().uuid(),
-  targetRole: z.string().optional(),
+  targetRole: z.string().trim().max(200).optional(),
 });
 
 export const applyRewritesSchema = z.object({

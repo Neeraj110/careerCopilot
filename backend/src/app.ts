@@ -3,8 +3,6 @@ import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import morgan from "morgan";
-import swaggerUi from "swagger-ui-express";
-import { swaggerSpec } from "./config/swagger";
 import { errorHandler } from "./middlewares/errorHandler";
 import authRoutes from "./modules/auth/auth.routes";
 import documentRoutes from "./modules/document/document.routes";
@@ -44,9 +42,6 @@ app.use(passport.initialize());
 
 // Logging
 app.use(morgan("dev"));
-
-// Swagger API Docs
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
 app.use("/api/v1/auth", authRoutes);

@@ -1,5 +1,9 @@
 import { END, START, Annotation, StateGraph } from "@langchain/langgraph";
-import { createGeminiModel, recordAiCall } from "../../../infrastructure/ai";
+import {
+  createGeminiModel,
+  recordAiCall,
+  withAiGuardrails,
+} from "../../../infrastructure/ai";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { z } from "zod";
 import { config } from "../../../config";
@@ -18,6 +22,9 @@ const ResumeImprovementState = Annotation.Root({
     partial: { requirement: string; foundAs: string }[];
     present: string[];
   }>(),
+  matchScore: Annotation<number>(),
+  role: Annotation<string>(),
+  matchSummary: Annotation<string>(),
   improvedBullets: Annotation<
     {
       original: string;
@@ -33,94 +40,72 @@ export type ImprovementAgentState = typeof ResumeImprovementState.State;
 
 const rawModel = createGeminiModel(config.geminiApiKey);
 
-async function parseResumeNode(state: ImprovementAgentState) {
-  const schema = z.object({
-    bullets: z.array(z.string()).describe("Achievement-oriented bullet points extracted exactly as written")
-  });
-  const structuredModel = rawModel.withStructuredOutput(schema, { name: "ParseResume" });
-
-  recordAiCall("gemini-resume", "resume.improvement.parse");
-  const response = await structuredModel.invoke([
-    new SystemMessage(`
-      You are a resume parser. Extract every achievement-oriented bullet point
-      from the resume — only from Experience, Projects, and Internship sections.
-
-      Rules:
-      - Skip section headers, education degrees, contact info, and skill lists
-      - Keep bullets exactly as written — do NOT paraphrase or fix grammar yet
-      - If a bullet spans multiple lines, merge into one string
-      - Include bullets even if they are weak or vague (they will be improved later)
-    `),
-    new HumanMessage(`RESUME:\n${state.resumeText}`),
-  ]);
-
-  return { parsedBullets: response.bullets };
+function formatBullets(bullets: string[]): string {
+  return bullets.map((bullet, index) => `${index + 1}. ${bullet}`).join("\n");
 }
 
-async function analyzeJDNode(state: ImprovementAgentState) {
+async function analyzeResumeAndJDNode(state: ImprovementAgentState) {
   const schema = z.object({
-    keywords: z.array(z.string()).describe("Exact technical keywords that an ATS would scan for"),
-    mustHave: z.array(z.string()).describe("Must-have requirements explicitly stated as required/mandatory"),
-    niceToHave: z.array(z.string()).describe("Nice-to-have requirements stated as preferred/bonus/plus")
+    bullets: z.array(z.string()).describe("Achievement-oriented bullets extracted exactly as written"),
+    jdRequirements: z.object({
+      keywords: z.array(z.string()).describe("Exact technical keywords that an ATS would scan for"),
+      mustHave: z.array(z.string()).describe("Must-have requirements explicitly stated as required/mandatory"),
+      niceToHave: z.array(z.string()).describe("Nice-to-have requirements stated as preferred/bonus/plus"),
+    }),
+    gaps: z.object({
+      missing: z.array(z.string()).describe("Requirements not mentioned in the resume bullets"),
+      partial: z.array(z.object({
+        requirement: z.string(),
+        foundAs: z.string(),
+      })).describe("Requirements hinted at but not explicitly stated"),
+      present: z.array(z.string()).describe("Requirements clearly demonstrated in at least one bullet"),
+    }),
+    matchScore: z.number().min(0).max(100).describe("Evidence-based resume match score for this job description"),
+    role: z.string().describe("Role described by the job description"),
+    matchSummary: z.string().describe("Brief, evidence-based explanation of the match score"),
   });
-  const structuredModel = rawModel.withStructuredOutput(schema, { name: "AnalyzeJD" });
-
-  recordAiCall("gemini-resume", "resume.improvement.analyze-jd");
-  const response = await structuredModel.invoke([
-    new SystemMessage(`
-      You are a senior technical recruiter analyzing a job description.
-
-      Your task:
-      1. Extract exact technical keywords that an ATS would scan for
-         (tools, frameworks, languages, methodologies — e.g. "React", "CI/CD", "REST APIs")
-      2. Identify must-have requirements — things explicitly stated as required/mandatory
-      3. Identify nice-to-have — things stated as preferred/bonus/plus
-
-      Important:
-      - keywords should be short exact terms, not sentences
-      - mustHave and niceToHave should be skill/requirement phrases, not full sentences
-      - Do not invent requirements not present in the JD
-    `),
-    new HumanMessage(`JOB DESCRIPTION:\n${state.jdText}`),
-  ]);
-
-  return { jdRequirements: response };
-}
-
-async function findGapsNode(state: ImprovementAgentState) {
-  const schema = z.object({
-    missing: z.array(z.string()).describe("Requirements not mentioned anywhere in the resume bullets"),
-    partial: z.array(z.object({
-      requirement: z.string(),
-      foundAs: z.string()
-    })).describe("Requirements hinted at but not explicitly stated"),
-    present: z.array(z.string()).describe("Requirements clearly demonstrated in at least one bullet")
+  const structuredModel = rawModel.withStructuredOutput(schema, {
+    name: "AnalyzeResumeAndJD",
   });
-  const structuredModel = rawModel.withStructuredOutput(schema, { name: "FindGaps" });
 
-  recordAiCall("gemini-resume", "resume.improvement.find-gaps");
+  recordAiCall("gemini-resume", "resume.improvement.analyze");
   const response = await structuredModel.invoke([
-    new SystemMessage(`
-      You are a resume gap analyst. Compare resume bullets against JD requirements.
+    new SystemMessage(withAiGuardrails(`
+      You are a resume parser and senior technical recruiter.
 
-      Classify each JD requirement into one of three buckets:
-      - missing:  requirement not mentioned anywhere in the resume bullets
-      - partial:  requirement is hinted at but not explicitly stated
-                  (e.g. JD says "AWS" but resume says "deployed on cloud")
-      - present:  requirement is clearly demonstrated in at least one bullet
-    `),
+      Analyze the resume and job description together:
+      1. Extract every achievement-oriented bullet from Experience, Projects, and
+         Internship sections. Skip headers, education, contact information, and
+         skill lists. Preserve wording exactly and merge bullets split across lines.
+      2. Extract exact ATS keywords, must-have requirements, and nice-to-have
+         requirements from the job description.
+      3. Compare the extracted resume bullets against all job-description
+         requirements and classify each as missing, partial, or present.
+      4. Score how well the original resume matches this job description from
+         0 to 100, identify the role, and summarize the score using only evidence
+         from the resume.
+
+      Keep keywords and requirements concise. Do not invent resume experience or
+      job requirements. Include weak or vague achievement bullets; they will be
+      improved in a later step.
+    `)),
     new HumanMessage(`
-      RESUME BULLETS:
-      ${state.parsedBullets.map((b, i) => `${i + 1}. ${b}`).join("\n")}
+      RESUME:
+      ${state.resumeText}
 
-      JD REQUIREMENTS:
-      Must-have: ${JSON.stringify(state.jdRequirements.mustHave)}
-      Nice-to-have: ${JSON.stringify(state.jdRequirements.niceToHave)}
-      ATS Keywords: ${JSON.stringify(state.jdRequirements.keywords)}
+      JOB DESCRIPTION:
+      ${state.jdText}
     `),
   ]);
 
-  return { gaps: response };
+  return {
+    parsedBullets: response.bullets,
+    jdRequirements: response.jdRequirements,
+    gaps: response.gaps,
+    matchScore: response.matchScore,
+    role: response.role,
+    matchSummary: response.matchSummary,
+  };
 }
 
 async function rewriteBulletsNode(state: ImprovementAgentState) {
@@ -140,16 +125,16 @@ async function rewriteBulletsNode(state: ImprovementAgentState) {
       That is below 70. This is retry #${state.retryCount}.
       Reasons it failed: bullets likely too vague, missing keywords, or no metrics.
       This time:
-      - Every bullet MUST contain at least one JD keyword
-      - Add realistic metrics (%, ms, users, requests/sec) where possible
+      - Use a JD keyword only when the original resume supports it
+      - Keep metrics only when they are supported by the original resume
       - Start with a strong action verb (Built, Reduced, Designed, Migrated, Led)
-      - Address missing gaps more aggressively
+      - Do not claim experience for gaps that are unsupported by the resume
     `
       : "";
 
   recordAiCall("gemini-resume", "resume.improvement.rewrite");
   const response = await structuredModel.invoke([
-    new SystemMessage(`
+    new SystemMessage(withAiGuardrails(`
       You are an expert resume writer who specializes in tech roles.
       Rewrite each resume bullet to be stronger and more aligned with the JD.
 
@@ -158,18 +143,17 @@ async function rewriteBulletsNode(state: ImprovementAgentState) {
          (Built, Designed, Reduced, Implemented, Migrated, Led, Optimized)
       2. Naturally embed missing JD keywords where truthful and relevant
          — do NOT fabricate experience the candidate does not have
-      3. Add quantified impact wherever possible
-         (e.g. "reduced latency by 40%", "serving 500+ daily users")
+      3. Keep existing metrics only when supported by the original bullet. Do not
+         add numbers, outcomes, or claims that the candidate did not provide.
       4. Keep each bullet to 1-2 lines max
-      5. For partial matches — strengthen the wording to explicitly name the skill
-         (e.g. "deployed on cloud platform" → "deployed on AWS EC2")
-         only if the original bullet makes it reasonable to assume
+      5. Clarify partial matches only when the original resume explicitly supports
+         the skill; do not infer a vendor or platform from a generic description
 
       ${retryContext}
-    `),
+    `)),
     new HumanMessage(`
       ORIGINAL BULLETS:
-      ${state.parsedBullets.map((b, i) => `${i + 1}. ${b}`).join("\n")}
+      ${formatBullets(state.parsedBullets)}
 
       GAPS TO ADDRESS:
       Missing: ${JSON.stringify(state.gaps.missing)}
@@ -198,7 +182,7 @@ async function validateNode(state: ImprovementAgentState) {
 
   recordAiCall("gemini-resume", "resume.improvement.validate");
   const response = await structuredModel.invoke([
-    new SystemMessage(`
+    new SystemMessage(withAiGuardrails(`
       You are a strict ATS scoring system evaluating improved resume bullets
       against a job description.
 
@@ -210,10 +194,10 @@ async function validateNode(state: ImprovementAgentState) {
 
       Be strict — a score of 70+ means the bullets are genuinely strong.
       Do not inflate scores.
-    `),
+    `)),
     new HumanMessage(`
       IMPROVED BULLETS:
-      ${state.improvedBullets.map((b, i) => `${i + 1}. ${b.improved}`).join("\n")}
+      ${formatBullets(state.improvedBullets.map((bullet) => bullet.improved))}
       JD KEYWORDS: ${JSON.stringify(state.jdRequirements.keywords)}
       JD MUST-HAVES: ${JSON.stringify(state.jdRequirements.mustHave)}
     `),
@@ -234,15 +218,11 @@ function shouldRetry(state: ImprovementAgentState): string {
 
 export function buildImprovementAgent() {
   return new StateGraph(ResumeImprovementState)
-    .addNode("parseResume", parseResumeNode)
-    .addNode("analyzeJD", analyzeJDNode)
-    .addNode("findGaps", findGapsNode)
+    .addNode("analyze", analyzeResumeAndJDNode)
     .addNode("rewrite", rewriteBulletsNode)
     .addNode("validate", validateNode)
-    .addEdge(START, "parseResume")
-    .addEdge("parseResume", "analyzeJD")
-    .addEdge("analyzeJD", "findGaps")
-    .addEdge("findGaps", "rewrite")
+    .addEdge(START, "analyze")
+    .addEdge("analyze", "rewrite")
     .addEdge("rewrite", "validate")
     .addConditionalEdges("validate", shouldRetry, {
       rewrite: "rewrite",

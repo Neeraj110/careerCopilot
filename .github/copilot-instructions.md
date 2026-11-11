@@ -48,7 +48,7 @@ There is currently no test script or test runner configured in either `package.j
 
 The browser application uses the Next.js App Router under `frontend/src/app` and shared UI/components under `frontend/src/components`. Client data access is centralized in `frontend/src/lib/api.ts` and feature hooks under `frontend/src/hooks`.
 
-The backend entrypoint is `backend/src/server.ts`, which connects Prisma before listening. `backend/src/app.ts` configures security/parsing middleware, Passport, Swagger, the health endpoint, and feature routers. API routes are grouped by feature under `backend/src/modules`:
+The backend entrypoint is `backend/src/server.ts`, which connects Prisma before listening. `backend/src/app.ts` configures security/parsing middleware, Passport, the health endpoint, and feature routers. API routes are grouped by feature under `backend/src/modules`:
 
 - `auth` handles local/JWT and Google OAuth flows.
 - `document` handles uploaded documents and their processing.

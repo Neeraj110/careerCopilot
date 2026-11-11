@@ -2,7 +2,7 @@
 import { z } from "zod";
 
 export const generateRoadmapSchema = z.object({
-  skill: z.string().min(1, "Skill is required"),
+  skill: z.string().trim().min(1, "Skill is required").max(200),
   level: z.enum(["beginner", "intermediate", "advanced"]),
-  targetGoal: z.string().min(1, "Target goal is required"),
+  targetGoal: z.string().trim().min(1, "Target goal is required").max(2_000),
 });
