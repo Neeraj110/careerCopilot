@@ -13,7 +13,7 @@ jobs:
   # --------------------------------------------------
   backend:
     name: Backend Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu
     defaults:
       run:
         working-directory: backend
@@ -43,7 +43,7 @@ jobs:
   # --------------------------------------------------
   frontend:
     name: Frontend Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu
     defaults:
       run:
         working-directory: frontend
